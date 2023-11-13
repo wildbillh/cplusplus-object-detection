@@ -19,6 +19,7 @@ int main() {
         std::vector<unsigned char> active_servos = {4,5};
         ServoProperties pan = ServoProperties();
         pan.channel = 4;
+        pan.speed = 10;
         pan.disabled = false;
         ServoProperties tilt = ServoProperties();
         tilt.channel = 5;
@@ -27,16 +28,17 @@ int main() {
         std::vector<ServoProperties> active_props = {pan, tilt};
 
         controller.sync (active_servos, active_props);
-        sleep(1);
+        utils::sleepMilliseconds(2);
+        controller.setPositionSync (4, 1000);
+        controller.setPositionSync (4, 1900);
 
-        for (unsigned char channel = 0; channel < 6; channel++) {
-            cout << controller.getChannelProperty(channel).print() << endl;
-        }
+        //for (unsigned char channel = 0; channel < 6; channel++) {
+        //    cout << controller.getChannelProperty(channel).print() << endl;
+        //}
         
-        controller.setPosition(5, 1000);
-        sleep(2);
+        
 
-        cout << controller.getChannelProperty(5).print() << endl;
+        cout << controller.getChannelProperty(4).print() << endl;
 
         /*
         controller.setPosition(5, 1500);

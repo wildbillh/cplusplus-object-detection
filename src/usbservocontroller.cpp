@@ -195,6 +195,22 @@ int USBServoController::setPosition (unsigned char channel, int position) {
 
 }
 
+// --------------------------------------------------------------------------------------------
+
+int USBServoController::setPositionSync (unsigned char channel, int position, float timeout) {
+	utils::Timer timer = utils::Timer();
+	int pos = setPosition(channel, position);
+	while (getPositionFromController(channel) != pos) {
+		utils::sleepMilliseconds(1);
+		if (timer.seconds() > timeout) {
+			cerr << "Warning: timeout occurred befre setPositionSynch() completion" << endl;
+			break;
+		}
+	}
+	return position;
+
+}
+
 int USBServoController::setSpeed (unsigned char channel, int val) {
 	
 	if (writeCommand(0x87, channel, val, "setSpeed")) {
@@ -210,18 +226,11 @@ int USBServoController::setSpeed (unsigned char channel, int val) {
 
 int USBServoController::getPositionFromController (unsigned char channel) {
 	
-	//const auto before = Time::now();
-	utils::Timer timer = utils::Timer();
 	
 	if (writeCommand(0x90, channel, "getPosition")) {
 		
 		unsigned char response[2];
 		if (serial.read(response, 2)) {
-
-			//auto after = Time::now();
-			//fsec fs = after - before;
-			utils::sleepSeconds(0.500);	
-			cout << "Get pos took " << timer.seconds() << endl;
 			return (response[0] + 256*response[1]) / 4;
 		}
 	}
@@ -242,7 +251,7 @@ void USBServoController::setEnabled (unsigned char channel) {
 	ServoProperties prop = properties[channel];
 	setAcceleration (channel, prop.acceleration);
 	setSpeed (channel, prop.speed);
-	setPosition (channel, prop.pos);
+	setPositionSync (channel, prop.pos);
 	prop.disabled = false;
 }
 

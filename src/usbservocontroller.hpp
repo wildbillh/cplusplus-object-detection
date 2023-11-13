@@ -46,6 +46,7 @@ class USBServoController {
         int getPositionFromController (unsigned char);
         int setAcceleration (unsigned char, int);
         int setPosition (unsigned char, int);
+        int setPositionSync (unsigned char, int, float = 3.0);
         int setSpeed (unsigned char, int);
         void setDisabled (unsigned char);
         void setEnabled (unsigned char);
