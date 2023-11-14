@@ -2,6 +2,7 @@
 #define __USBSERVOCONTROLLER_HPP_INCLUDED__
 
 #define CE_SERIAL_IMPLEMENTATION
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <chrono>
@@ -24,7 +25,7 @@ class ServoProperties {
         int acceleration;
         bool disabled;
         bool active;
-        ServoProperties ();
+        ServoProperties (unsigned char = 99);
         string print ();
 };
 
@@ -46,7 +47,10 @@ class USBServoController {
         int getPositionFromController (unsigned char);
         int setAcceleration (unsigned char, int);
         int setPosition (unsigned char, int);
+        std::vector<int> setPositionMulti (std::vector<unsigned char>, std::vector<int>); 
+
         int setPositionSync (unsigned char, int, float = 3.0);
+        std::vector<int> setPositionMultiSync (std::vector<unsigned char>, std::vector<int>, float = 3.0);
         int setSpeed (unsigned char, int);
         void setDisabled (unsigned char);
         void setEnabled (unsigned char);

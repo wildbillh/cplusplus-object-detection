@@ -1,8 +1,8 @@
 
 #include "usbservocontroller.hpp"
 
-ServoProperties::ServoProperties () {
-	channel = 99;
+ServoProperties::ServoProperties (unsigned char servo) {
+	channel = servo;
  	min = 992;
     max = 2000;
     home = 1500;
@@ -195,6 +195,27 @@ int USBServoController::setPosition (unsigned char channel, int position) {
 
 }
 
+std::vector<int> USBServoController::setPositionMulti ( 
+	std::vector<unsigned char> channels, 
+	std::vector<int> positions) {
+
+	std::vector<int> returned_pos_list;
+
+	if (channels.size() != positions.size()) {
+		cerr << "Mismatched data sent to setPositionMulti" << endl;
+	}
+	else {
+		for (int i=0; i<channels.size(); i++) {
+			returned_pos_list.push_back(setPosition(channels[i], positions[i]));
+		}
+		
+	}
+
+	return returned_pos_list;
+	
+
+}
+
 // --------------------------------------------------------------------------------------------
 
 int USBServoController::setPositionSync (unsigned char channel, int position, float timeout) {
@@ -208,8 +229,46 @@ int USBServoController::setPositionSync (unsigned char channel, int position, fl
 		}
 	}
 	return position;
+}
+
+
+// -------------------------------------------------------------------------------------------
+
+std::vector<int> USBServoController::setPositionMultiSync (
+	std::vector<unsigned char> channels,
+	std::vector<int> positions,
+	float timeout) {
+
+	int number_of_channels = channels.size();
+
+	setPositionMulti (channels, positions);
+	bool status [number_of_channels] = {false}; 
+	auto timer = utils::Timer();
+
+	while (!utils::allTrue(status, number_of_channels))  {
+		
+		for (int i=0; i<number_of_channels; i++) {
+			if (!status[i]) {
+				if (getPositionFromController(channels[i]) == positions[i]) {
+					status[i] = true;
+				}
+			}
+		}
+		if (timer.seconds() >= timeout) {
+			cerr << "Timeout in setPostionMultiSync" << endl;
+			break;
+		}
+
+	} 
+
+	return positions;
+
 
 }
+
+
+// -------------------------------------------------------------------------------------------
+
 
 int USBServoController::setSpeed (unsigned char channel, int val) {
 	

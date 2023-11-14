@@ -9,6 +9,15 @@ void utils::sleepMilliseconds (long milliseconds) {
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));   
 }
 
+bool utils::allTrue (bool source[], int size) {
+    for (int i=0; i<size; i++) {
+        if (!source[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 utils::Timer::Timer () {
     start();
 }

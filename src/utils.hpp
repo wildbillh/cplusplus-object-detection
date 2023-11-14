@@ -11,6 +11,7 @@ namespace utils {
 
 void sleepSeconds (double);
 void sleepMilliseconds (long);
+bool allTrue (bool[], int);
 
 class Timer {
     public: 

@@ -17,20 +17,24 @@ int main() {
         controller.open("COM4");
         
         std::vector<unsigned char> active_servos = {4,5};
-        ServoProperties pan = ServoProperties();
-        pan.channel = 4;
+        
+        ServoProperties pan = ServoProperties(4);
         pan.speed = 10;
         pan.disabled = false;
-        ServoProperties tilt = ServoProperties();
-        tilt.channel = 5;
+        
+        ServoProperties tilt = ServoProperties(5);
+        tilt.speed = 10;
         tilt.disabled = false;
 
         std::vector<ServoProperties> active_props = {pan, tilt};
 
         controller.sync (active_servos, active_props);
-        utils::sleepMilliseconds(2);
-        controller.setPositionSync (4, 1000);
-        controller.setPositionSync (4, 1900);
+        
+        controller.setPositionMultiSync (std::vector<unsigned char>{4,5},  std::vector<int>{1000, 1000}); 
+        controller.setPositionMultiSync (std::vector<unsigned char>{4,5},  std::vector<int>{1500, 1500});
+        
+
+        //controller.setPositionSync (4, 1900);
 
         //for (unsigned char channel = 0; channel < 6; channel++) {
         //    cout << controller.getChannelProperty(channel).print() << endl;
