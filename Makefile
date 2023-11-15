@@ -44,11 +44,11 @@ $(BUILD_DIR)/ceSerial.o: $(SRC_DIR)/ceSerial.cpp
 
 $(BUILD_DIR)/serial.o: $(SRC_DIR)/serial.cpp $(SRC_DIR)/serial.hpp
 	mkdir -p $(BUILD_DIR)
-	$(CXX) -c $< -o $@
+	$(CXX) $(CPPFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/utils.o: $(SRC_DIR)/utils.cpp $(SRC_DIR)/utils.hpp
 	mkdir -p $(BUILD_DIR)
-	$(CXX) -c $< -o $@	
+	$(CXX) $(CPPFLAGS) -c $< -o $@	
 
 
 $(BUILD_DIR)/test-com.exe: $(BUILD_DIR)/ceSerial.o

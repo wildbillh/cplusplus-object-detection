@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <iostream>
+#include <stdexcept>
+#include <spdlog/spdlog.h>
 
 #ifdef _WIN32
     #define O_NOCTTY 0
@@ -13,6 +15,7 @@
 #endif
 
 using namespace std;
+
 
 class Serial {
 
@@ -26,4 +29,5 @@ class Serial {
         bool isOpen ();
     protected:
         int fd;
+        string port;
 };

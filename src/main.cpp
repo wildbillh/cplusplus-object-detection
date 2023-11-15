@@ -15,9 +15,11 @@ int main() {
 
     try {
         
+        // Set up the logger
         spdlog::set_level(spdlog::level::debug);
         spdlog::set_pattern("[%^%l%$] %v");
-        spdlog::info("hello there");
+        
+
         USBServoController controller = USBServoController();
         controller.open("COM4");
           
@@ -77,7 +79,8 @@ int main() {
             
         return 0;
     }
-    catch (const char* msg) {
-        cerr << "Exception: " << msg << endl;
+    catch (const std::exception & e) {
+        spdlog::error(e.what());
+        spdlog::error("Program terminating");
     }
 }

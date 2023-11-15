@@ -19,6 +19,14 @@ using namespace std;
 
 enum class PositionUnits {MICROSECONDS, DEGREES};
 
+class USBServoControllerException : public std::exception {
+    private:
+        char * message;
+    public:
+        USBServoControllerException (char *); 
+        char * what ();  
+};
+
 
 class ServoProperties {
     public:
@@ -44,7 +52,7 @@ class USBServoController {
         USBServoController ();
         ~USBServoController ();
         void close ();
-        bool open (string);
+        void open (string);
         void syncProperty (unsigned char);
         void sync (std::vector<unsigned char>);
         void sync (std::vector<unsigned char>, std::vector<ServoProperties>);
