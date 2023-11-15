@@ -1,7 +1,22 @@
 
 #include "usbservocontroller.hpp"
 
+USBServoControllerException::USBServoControllerException(char * msg) : message(msg) {
+	
+}
+
+char * USBServoControllerException::what () {
+	return message;
+}
+
 ServoProperties::ServoProperties (unsigned char servo, int rangeDegrees) {
+
+	/**
+	 * Initialize a default servo property class
+	 * @ param servo - the channel to set up. Defaults to 99
+	 * @ param rangeDegrees - The range of degrees that the min and max microseconds represent. Default to 120
+	*/
+
 	channel = servo;
  	min = 992;
     max = 2000;
@@ -19,6 +34,9 @@ ServoProperties::ServoProperties (unsigned char servo, int rangeDegrees) {
 
 string ServoProperties::print () {
 
+	/**
+	 * Build a string representing the state of the servo properties
+	*/
 	std::stringstream s;
 	s << "channel: " << (channel == 99 ? "unset" : std::to_string(channel)) << endl;
 	s << "min: " << min << endl;
@@ -29,33 +47,43 @@ string ServoProperties::print () {
 	s << "speed: " << speed << endl;
 	s << "disabled: " << (disabled ? "true" : "false") << endl;
 	s << "active: " << (active ? "true" : "false") << endl;
+	s << "range (degrees): " << range_degrees << endl;
 
 	return s.str();
 
 }
 
-
+// ----------------------------------------------------------------------------------
 
 USBServoController::USBServoController () {
+	/**
+	 * Sets up the default properties for the number of possible servos
+	*/
+	
 	for (int i=0; i<USBServoController::MAX_SERVOS; i++) {
 		properties.push_back(ServoProperties());
 	}
-	//active_servos = {};
-	//number_of_active_servos = 0;
-	//cout << sizeof (active_servos) << endl;
+	
 }
 
 USBServoController::~USBServoController () {
-	// Disable all active servos
+	/**
+	 * Disable all active servos before the class is destroyed
+	*/
+	
 	for (unsigned char servo : active_servos) {
-		cout << "disable " << (int)servo << endl;
 		setDisabled(servo);
 	}
 
 	close();	
 }
 
+// -------------------------------------------------------------------------------
+
 void USBServoController::close () {
+	/**
+	 * Close the serial port used to communicate with the controller
+	*/
 	if (serial.isOpen()) {
 		serial.close();
 	}
@@ -65,17 +93,17 @@ void USBServoController::close () {
 
 // --------------------------------------------------------------------------------
 
-bool USBServoController::open (string port) {
+void USBServoController::open (string port) {
+
+	/**
+	 * Open the given string representing a virtual COM port
+	 * 
+	*/
 
 	serial = Serial();
-	if (serial.open(port)) {
-	}
-	else {
-		printf("Error.\n");
-		return false;
-	}
+	// if this call fails, an exception is thrown
+	serial.open(port);
 
-    return true;
 }
 
 // -----------------------------------------------------------------------------------------
