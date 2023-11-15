@@ -1,7 +1,7 @@
 
 #include "usbservocontroller.hpp"
 
-ServoProperties::ServoProperties (unsigned char servo) {
+ServoProperties::ServoProperties (unsigned char servo, int rangeDegrees) {
 	channel = servo;
  	min = 992;
     max = 2000;
@@ -11,6 +11,8 @@ ServoProperties::ServoProperties (unsigned char servo) {
     acceleration = 0;
 	disabled = true;
 	active = false;
+	range_degrees = rangeDegrees;
+	microseconds_per_degree = (max - min ) / range_degrees;
 }
 
 // -----------------------------------------------------------------------------------
@@ -46,6 +48,7 @@ USBServoController::USBServoController () {
 USBServoController::~USBServoController () {
 	// Disable all active servos
 	for (unsigned char servo : active_servos) {
+		cout << "disable " << (int)servo << endl;
 		setDisabled(servo);
 	}
 
@@ -255,15 +258,23 @@ std::vector<int> USBServoController::setPositionMultiSync (
 			}
 		}
 		if (timer.seconds() >= timeout) {
-			cerr << "Timeout in setPostionMultiSync" << endl;
+			spdlog::warn("Timeout in setPostionMultiSync");
 			break;
 		}
 
 	} 
 
 	return positions;
+}
 
 
+int USBServoController::setRelativePos (unsigned char channel, float val, PositionUnits units, bool sync) {
+
+	int new_pos = calculateRelativePosition (channel, val, units);
+	if (sync) {
+		 return setPositionSync (channel, new_pos);
+	}
+	return setPosition (channel, new_pos);
 }
 
 
@@ -300,6 +311,7 @@ int USBServoController::getPositionFromController (unsigned char channel) {
 // ---------------------------------------------------------------------------
 
 void USBServoController::setDisabled (unsigned char channel) {
+	spdlog::debug("disabling channel " + to_string((int)channel));
 	setPosition(channel, 0);
 	properties[channel].disabled = true;
 }
@@ -316,4 +328,19 @@ void USBServoController::setEnabled (unsigned char channel) {
 
 ServoProperties USBServoController::getChannelProperty (unsigned char channel) {
 	return properties[channel];
+}
+
+// ------------------------------------------------------------------------------------
+
+int USBServoController::calculateRelativePosition (unsigned char channel, float val, PositionUnits units) {
+
+	int diff_ms = 0;
+	if (units == PositionUnits::MICROSECONDS) {
+		diff_ms = (int)val;
+	}
+	else if (units == PositionUnits::DEGREES) {
+		diff_ms = (int) (val * properties[channel].microseconds_per_degree);
+	}
+
+	return properties[channel].pos + diff_ms; 
 }
