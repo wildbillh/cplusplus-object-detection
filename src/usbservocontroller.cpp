@@ -1,13 +1,7 @@
 
 #include "usbservocontroller.hpp"
 
-USBServoControllerException::USBServoControllerException(char * msg) : message(msg) {
-	
-}
 
-char * USBServoControllerException::what () {
-	return message;
-}
 
 ServoProperties::ServoProperties (unsigned char servo, int rangeDegrees) {
 
@@ -65,6 +59,8 @@ USBServoController::USBServoController () {
 	}
 	
 }
+
+// -----------------------------------------------------------------------------------
 
 USBServoController::~USBServoController () {
 	/**
@@ -125,7 +121,11 @@ void USBServoController::sync (std::vector <unsigned char> activeServos) {
 
 void USBServoController::sync (std::vector<unsigned char> activeServos, std::vector<ServoProperties> activeProperties) {
 	
-	
+	/**
+	 * Send any commands necessary to sync the controller to the current local settings
+	 * for all active channels
+	*/
+
 	// Store the active servos in the member var
 	active_servos = activeServos;
 
@@ -146,6 +146,10 @@ void USBServoController::sync (std::vector<unsigned char> activeServos, std::vec
 
 void USBServoController::syncProperty (unsigned char channel) {
 
+	/**
+	 * Sync a particular channels settings with the controller
+	*/
+
 	// Get the stored properties for the channel
 	ServoProperties prop = properties[channel];
 
@@ -159,38 +163,55 @@ void USBServoController::syncProperty (unsigned char channel) {
 		// setEnabled sync all of the properties automatically
 		setEnabled (channel);
 	}
-
-
 }
 
 
 // --------------------------------------------------------------------------------------------
 
 bool USBServoController::writeCommand (unsigned char code, unsigned char channel, string description) {
+
+	/**
+	 * Write a command to a particular channel.
+	 * This method is used typically to get info from the controller 
+	 * since it doesn't pass any data.
+	 * @param code byte value recognized by the controller
+	 * @param channel - channel to send to 
+	 * @param description - description of the command to be used for troubleshooting
+	 * @returns - true if successful 
+	 * @throws - runtime_error if port is not open
+	*/
     
-    unsigned char command[] = {code, channel};
+	unsigned char command[] = {code, channel};
     
     if (!serial.write(command, sizeof command))
     {
-        cerr << "error writing: " << description << endl;
+        spdlog::error("error writing: " + description);
         return false;
     }
 
     return true;
 }
 
-
-
 // -----------------------------------------------------------------------------------------------
 
 bool USBServoController::writeCommand (unsigned char code, unsigned char channel, int target, string description) {
 
+	/**
+	 * Write a command to a particular channel.
+	 * Passes data to the controller
+	 * @param code byte value recognized by the controller
+	 * @param channel - channel to send to 
+	 * @param target - the data to pass. This value is chopped into 2 bytes
+	 * @param description - description of the command to be used for troubleshooting
+	 * @returns - true if successful
+	 * @throws - runtime_error if port is not open
+	*/
     
     unsigned char command[] = {code, channel, (unsigned char)(target & 0x7F), (unsigned char)(target >> 7 & 0x7F)};
 
     if (!serial.write(command, sizeof command))
     {
-        cerr << "error writing: " << description << endl;
+        spdlog::error("error writing: " + description);
         return false;
     }
 
@@ -201,7 +222,16 @@ bool USBServoController::writeCommand (unsigned char code, unsigned char channel
 // ----------------------------------------------------------------------------------------------
 
 int USBServoController::setAcceleration (unsigned char channel, int val) {
+
+	/**
+	 * Sets the acceleration value in the settings and controller
+	 * @param channel - channel to write to 
+	 * @param val - acceleration value 0 - 255
+	 * @returns - the value given on success or -1 on failure
+	*/
 	
+	spdlog::debug ("Setting acceleration of channel " + to_string((int)channel) + " to " + to_string(val));
+
 	if (writeCommand(0x89, channel, val, "setAcceleration") ) {
 		properties[channel].acceleration = val;
 		return val;
@@ -215,7 +245,28 @@ int USBServoController::setAcceleration (unsigned char channel, int val) {
 
 int USBServoController::setPosition (unsigned char channel, int position) {
 
-	int quarter_ms = position * 4;
+	/**
+	 * Sets the position value in the settings and controller in a non blocking way
+	 * @param channel - channel to write to 
+	 * @param val - acceleration value 0 - 255
+	 * @returns - the value given on success or -1 on failure
+	*/
+
+	int new_pos = position;
+	// Make sure we don't try to reach a position outside of the property boundaries
+	if (new_pos != 0) {
+		if (new_pos < properties[channel].min) {
+			new_pos = properties[channel].min;
+		}
+		else if (new_pos > properties[channel].max) {
+			new_pos = properties[channel].max;
+		}
+	}
+
+	spdlog::debug ("Setting position of channel " + to_string((int)channel) + " to " + to_string(new_pos));
+
+	// Convert to quarter ms
+	int quarter_ms = new_pos * 4;
 	
 	if (writeCommand(0x84, channel, quarter_ms, "setPosition")) {
 		properties[channel].pos = position;
@@ -226,9 +277,18 @@ int USBServoController::setPosition (unsigned char channel, int position) {
 
 }
 
+// ----------------------------------------------------------------------------------------------------
+
 std::vector<int> USBServoController::setPositionMulti ( 
 	std::vector<unsigned char> channels, 
 	std::vector<int> positions) {
+
+	/**
+	 * Sets the position value in the settings and controller for multiple channels. Non blocking
+	 * @param channels - channels to write to 
+	 * @param positions - positions to set
+	 * @returns - vector of positions 
+	*/
 
 	std::vector<int> returned_pos_list;
 
@@ -238,8 +298,7 @@ std::vector<int> USBServoController::setPositionMulti (
 	else {
 		for (int i=0; i<channels.size(); i++) {
 			returned_pos_list.push_back(setPosition(channels[i], positions[i]));
-		}
-		
+		}	
 	}
 
 	return returned_pos_list;
@@ -250,6 +309,15 @@ std::vector<int> USBServoController::setPositionMulti (
 // --------------------------------------------------------------------------------------------
 
 int USBServoController::setPositionSync (unsigned char channel, int position, float timeout) {
+
+	/**
+	 * Sets the position value in the settings and controller, but blocks until the position is achieved
+	 * @param channel - channel to write to 
+	 * @param val - acceleration value 0 - 255
+	 * @param timeout - how long to wait for the position to be acheived in seconds 
+	 * @returns - the value given on success or -1 on failure
+	*/
+
 	utils::Timer timer = utils::Timer();
 	int pos = setPosition(channel, position);
 	while (getPositionFromController(channel) != pos) {
@@ -269,6 +337,15 @@ std::vector<int> USBServoController::setPositionMultiSync (
 	std::vector<unsigned char> channels,
 	std::vector<int> positions,
 	float timeout) {
+
+	/**
+	 * Sets the position value in the settings and controller for multiple channels, but blocks until 
+	 * the position is achieved
+	 * @param channels - channels to write to 
+	 * @param positions - positions to set
+	 * @param timeout - how long to wait for the position to be acheived in seconds 
+	 * @returns - the values given on success or -1 on failure
+	*/
 
 	int number_of_channels = channels.size();
 
@@ -298,6 +375,14 @@ std::vector<int> USBServoController::setPositionMultiSync (
 
 int USBServoController::setRelativePos (unsigned char channel, float val, PositionUnits units, bool sync) {
 
+	/**
+	 * Sets the position value in the settings and controller as a delta to the current position
+	 * @param channel - channel to write to 
+	 * @param val - delta of position
+	 * @param units - microseconds or degrees 
+	 * @returns - the final position calculated on success or -1 on failure
+	*/
+
 	int new_pos = calculateRelativePosition (channel, val, units);
 	if (sync) {
 		 return setPositionSync (channel, new_pos);
@@ -308,8 +393,17 @@ int USBServoController::setRelativePos (unsigned char channel, float val, Positi
 
 // -------------------------------------------------------------------------------------------
 
-
 int USBServoController::setSpeed (unsigned char channel, int val) {
+
+	/**
+	 * Sets the speed value in the settings and controller
+	 * @param channel - channel to write to 
+	 * @param val - speed value 0 - 255
+	 * @returns - the value given on success or -1 on failure
+	*/
+	
+	
+	spdlog::debug ("Setting speed of channel " + to_string((int)channel) + " to " + to_string(val));
 	
 	if (writeCommand(0x87, channel, val, "setSpeed")) {
 		properties[channel].speed = val;
@@ -323,10 +417,14 @@ int USBServoController::setSpeed (unsigned char channel, int val) {
 // ------------------------------------------------------------------------
 
 int USBServoController::getPositionFromController (unsigned char channel) {
+
+	/**
+	 * Gets the position value from the controller
+	 * @param channel - channel to write to 
+	 * @returns - the position on success or -1 on failure
+	*/
 	
-	
-	if (writeCommand(0x90, channel, "getPosition")) {
-		
+	if (writeCommand(0x90, channel, "getPosition")) {	
 		unsigned char response[2];
 		if (serial.read(response, 2)) {
 			return (response[0] + 256*response[1]) / 4;
@@ -339,6 +437,11 @@ int USBServoController::getPositionFromController (unsigned char channel) {
 // ---------------------------------------------------------------------------
 
 void USBServoController::setDisabled (unsigned char channel) {
+
+	/**
+	 * Disables a channel (set position to 0)
+	 * @param channel - channel to disable
+	*/
 	spdlog::debug("disabling channel " + to_string((int)channel));
 	setPosition(channel, 0);
 	properties[channel].disabled = true;
@@ -347,6 +450,13 @@ void USBServoController::setDisabled (unsigned char channel) {
 // ---------------------------------------------------------------------------
 
 void USBServoController::setEnabled (unsigned char channel) {
+
+	/**
+	 * Enables a channel. Sets the controller to the settings values. Blocks until complete
+	 * @param channel - channel to disable
+	*/
+	
+	spdlog::debug("enabling channel " + to_string((int)channel));
 	ServoProperties prop = properties[channel];
 	setAcceleration (channel, prop.acceleration);
 	setSpeed (channel, prop.speed);
@@ -355,12 +465,27 @@ void USBServoController::setEnabled (unsigned char channel) {
 }
 
 ServoProperties USBServoController::getChannelProperty (unsigned char channel) {
+
+	/** 
+	 * Gets the servo properties class for a channel
+	 * @param channel - channel to get the properties for
+	 * @returns ServoProperties class
+	*/
+
 	return properties[channel];
 }
 
 // ------------------------------------------------------------------------------------
 
 int USBServoController::calculateRelativePosition (unsigned char channel, float val, PositionUnits units) {
+
+	/**
+	 * Calculates a new position based on the current value and the given delta
+	 * @param channel = channel to calculate
+	 * @param val - delta to calculate
+	 * @param units - microseconds or degrees
+	 * @returns - position in microseconds
+	*/
 
 	int diff_ms = 0;
 	if (units == PositionUnits::MICROSECONDS) {

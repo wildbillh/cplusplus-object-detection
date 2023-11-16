@@ -1,16 +1,13 @@
-#ifndef __USBSERVOCONTROLLER_HPP_INCLUDED__
-#define __USBSERVOCONTROLLER_HPP_INCLUDED__
+#pragma once
 
-#define CE_SERIAL_IMPLEMENTATION
+
 #include <algorithm>
 #include <iostream>
 #include <string>
-#include <string_view>
 #include <sstream>
 #include <chrono>
 #include <vector>
-#include <format>
-//#include "ceSerial.h"
+
 #include "serial.hpp"
 #include "utils.hpp"
 #include <spdlog/spdlog.h>
@@ -19,15 +16,10 @@ using namespace std;
 
 enum class PositionUnits {MICROSECONDS, DEGREES};
 
-class USBServoControllerException : public std::exception {
-    private:
-        char * message;
-    public:
-        USBServoControllerException (char *); 
-        char * what ();  
-};
-
-
+/**
+ * Struct like class which holds the current setting for a particular 
+ * channel. 
+*/
 class ServoProperties {
     public:
         unsigned char channel;
@@ -46,7 +38,9 @@ class ServoProperties {
 };
 
 
-
+/**
+ * Class for sending and receiving commands to a USB Servo controller
+*/
 class USBServoController {
     public:
         USBServoController ();
@@ -83,4 +77,4 @@ class USBServoController {
         Serial serial;
 };
 
-#endif
+

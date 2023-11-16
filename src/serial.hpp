@@ -2,6 +2,7 @@
 #pragma once
 
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <iostream>
@@ -16,13 +17,15 @@
 
 using namespace std;
 
-
+/**
+ * Class which supplies methods to open, close, read and write to a virtual com port.
+*/
 class Serial {
 
     public:
         Serial ();
         ~Serial ();
-        bool open (std::string);
+        void open (std::string);
         void close();
         bool read (unsigned char *, int);
         bool write (unsigned char *, int);
