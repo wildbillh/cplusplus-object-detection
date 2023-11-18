@@ -1,15 +1,21 @@
+# Makefile to build the project
+# Outside dependencies:
+#	opencv
+#	spdlog
 
-CXX = g++
+CXX = g++ -DSPDLOG_COMPILED_LIB=1
 TARGET_EXEC ?= main.exe
 SRC_DIR ?= ./src
 BUILD_DIR ?= ./build
+LOCAL := /c/Users/wildb/local
 
-OPENCV_INCLUDE_PATH := "C:\Users\wildb\opencv\install\include"
-PLOG_INCLUDE_PATH := "C:\Users\wildb\plog\include"
-OPENCV_LIB_PATH := "C:\Users\wildb\opencv\install\x64\mingw\lib"
-OPENCV_LIBS := -lopencv_core481 -lopencv_highgui481 -lopencv_imgproc481 -lopencv_imgcodecs481 -lopencv_videoio481
-CPPFLAGS = -I $(OPENCV_INCLUDE_PATH) -I ./inc
-LDFLAGS = -L $(OPENCV_LIB_PATH) $(OPENCV_LIBS)
+OPENCV_INCLUDE_PATH = "$(LOCAL)/opencv/include"
+OPENCV_LIB_PATH = "$(LOCAL)/opencv/lib"
+SPDLOG_INCLUDE_PATH = "$(LOCAL)/spdlog/include"
+SPDLOG_LIB_PATH = "$(LOCAL)/spdlog/lib"
+LIBS = -lopencv_core481 -lopencv_highgui481 -lopencv_imgproc481 -lopencv_imgcodecs481 -lopencv_videoio481 -lspdlog
+CPPFLAGS = -I $(OPENCV_INCLUDE_PATH) -I $(SPDLOG_INCLUDE_PATH)
+LDFLAGS = -L $(OPENCV_LIB_PATH) -L $(SPDLOG_LIB_PATH) $(LIBS) 
 
 # Get the list of source files
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
