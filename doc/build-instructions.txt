@@ -1,0 +1,1 @@
+make sure to set WITH_MSMF=OFF  WITH_OBSENSOR=OFF in cmake
