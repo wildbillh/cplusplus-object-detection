@@ -414,6 +414,52 @@ int USBServoController::setSpeed (unsigned char channel, int val) {
 
 }
 
+// ----------------------------------------------------------------------------------------------
+
+
+int USBServoController::returnToHome (unsigned char channel, bool sync, float timeout) {
+	/**
+ 	* Set the channel to the defined home position.
+	* @param channel - channel to set
+	* @param sync - Set to true for blocking behavior
+	* @param timeout - How long to wait for blocking call to complete
+	* @returns position set
+	*/
+
+	int pos = properties[channel].home;
+	if (sync) {
+		return setPositionSync (channel, pos, timeout);
+	}
+
+	return setPosition (channel, pos);
+}
+
+// -------------------------------------------------------------------------------------------
+
+std::vector<int> USBServoController::returnToHomeMulti (std::vector<unsigned char> channels, bool sync, float timeout) {
+	/**
+ 	* Set the channel to the defined home position.
+	* @param channels - vector of channels to set
+	* @param sync - Set to true for blocking behavior
+	* @param timeout - How long to wait for blocking call to complete
+	* @returns - vector of positions set
+	*/
+
+	// Get a list of home positions
+	std::vector<int> positions;
+	for (int i=0; i<channels.size(); i++) {
+		positions.push_back(properties[channels[i]].home);
+	}
+
+	if (sync) {
+		return setPositionMultiSync (channels, positions, timeout);
+	}
+
+	return setPositionMulti (channels, positions);
+	
+}
+
+
 // ------------------------------------------------------------------------
 
 int USBServoController::getPositionFromController (unsigned char channel) {

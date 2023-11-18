@@ -64,6 +64,8 @@ class USBServoController {
         int setRelativePos (unsigned char, float, PositionUnits units = PositionUnits::DEGREES, bool sync = false);
         
         int setSpeed (unsigned char, int);
+        int returnToHome (unsigned char, bool = false, float = 3.0);
+        std::vector<int> returnToHomeMulti (std::vector<unsigned char>, bool = false, float = 3.0);
         void setDisabled (unsigned char);
         void setEnabled (unsigned char);
         ServoProperties getChannelProperty (unsigned char); 

@@ -13,9 +13,11 @@ OPENCV_INCLUDE_PATH = "$(LOCAL)/opencv/include"
 OPENCV_LIB_PATH = "$(LOCAL)/opencv/lib"
 SPDLOG_INCLUDE_PATH = "$(LOCAL)/spdlog/include"
 SPDLOG_LIB_PATH = "$(LOCAL)/spdlog/lib"
-LIBS = -lopencv_core481 -lopencv_highgui481 -lopencv_imgproc481 -lopencv_imgcodecs481 -lopencv_videoio481 -lspdlog
-CPPFLAGS = -I $(OPENCV_INCLUDE_PATH) -I $(SPDLOG_INCLUDE_PATH)
-LDFLAGS = -L $(OPENCV_LIB_PATH) -L $(SPDLOG_LIB_PATH) $(LIBS) 
+JSONCPP_INCLUDE_PATH = "$(LOCAL)/jsoncpp/include"
+JSONCPP_LIB_PATH = "$(LOCAL)/jsoncpp/lib"
+LIBS = -lopencv_core481 -lopencv_highgui481 -lopencv_imgproc481 -lopencv_imgcodecs481 -lopencv_videoio481 -lspdlog -ljsoncpp
+CPPFLAGS = -I $(OPENCV_INCLUDE_PATH) -I $(SPDLOG_INCLUDE_PATH) -I $(JSONCPP_INCLUDE_PATH)
+LDFLAGS = -L $(OPENCV_LIB_PATH) -L $(SPDLOG_LIB_PATH) -L $(JSONCPP_LIB_PATH) $(LIBS) 
 
 # Get the list of source files
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
@@ -27,6 +29,14 @@ OBJS = $(addprefix $(BUILD_DIR)/, $(RAW_SRCS:.cpp=.o))
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	$(CXX) $(OBJS) $(LDFLAGS) -o $@
+
+$(BUILD_DIR)/test-json.exe:
+	mkdir -p $(BUILD_DIR)
+	$(CXX)  $(CPPFLAGS) $< $(LDFLAGS) -o $@
+
+$(BUILD_DIR)/test-json.o: $(SRC_DIR)/test-json.cpp 
+	mkdir -p $(BUILD_DIR)
+	$(CXX) $(CPPFLAGS) -c $< -o $@	
 
 $(BUILD_DIR)/capturemanager.o: $(SRC_DIR)/capturemanager.cpp $(SRC_DIR)/capturemanager.hpp
 	mkdir -p $(BUILD_DIR)

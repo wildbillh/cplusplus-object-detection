@@ -43,6 +43,28 @@ bool utils::allTrue (bool source[], int size) {
     return true;
 }
 
+Json::Value utils::readJsonFromFile (std::string filename) {
+
+    Json::Value root;
+    std::ifstream f;
+    f.open(filename);
+    if (!f.is_open()) {
+        std::cerr << "Error opening: " << filename << std::endl;
+        return root;
+    }
+    Json::CharReaderBuilder builder;
+    JSONCPP_STRING errs;
+
+    if (!parseFromStream(builder, f, &root, &errs)) {
+        std::cout << errs << std::endl;
+    }
+
+    f.close();
+    return root;
+
+
+}
+
 // --------------------------------------------------------------------------------------
 
 utils::Timer::Timer () {
@@ -90,6 +112,9 @@ int utils::Timer::milliseconds () {
     std::chrono::time_point end_instance = std::chrono::high_resolution_clock::now();
     return std::chrono::duration_cast<std::chrono::milliseconds> (end_instance - start_instance).count();
 }
+
+
+
 
 
     

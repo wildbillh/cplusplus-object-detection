@@ -2,12 +2,17 @@
 
 #include <chrono>
 #include <thread>
+#include <fstream>
+#include <iostream>
+
+#include <json/json.h>
 
 namespace utils {
 
 void sleepSeconds (double);
 void sleepMilliseconds (long);
 bool allTrue (bool[], int);
+Json::Value readJsonFromFile (std::string filename);
 
 /**
  * Class for getting elapsed time between to set points.
