@@ -44,9 +44,6 @@ $(BUILD_DIR)/main.o: $(SRC_DIR)/main.cpp
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(CPPFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/ceSerial.o: $(SRC_DIR)/ceSerial.cpp
-	mkdir -p $(BUILD_DIR)
-	$(CXX) -c $< -o $@
 
 $(BUILD_DIR)/serial.o: $(SRC_DIR)/serial.cpp $(SRC_DIR)/serial.hpp
 	mkdir -p $(BUILD_DIR)
