@@ -36,7 +36,7 @@ $(BUILD_DIR)/cameracapturemanager.o: $(SRC_DIR)/cameracapturemanager.cpp $(SRC_D
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(CPPFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/usbservocontroller.o: $(SRC_DIR)/usbservocontroller.cpp $(SRC_DIR)/usbservocontroller.hpp ${BUILD_DIR}/capturemanager.o ${BUILD_DIR}/ceSerial.o
+$(BUILD_DIR)/usbservocontroller.o: $(SRC_DIR)/usbservocontroller.cpp $(SRC_DIR)/usbservocontroller.hpp ${BUILD_DIR}/capturemanager.o
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(CPPFLAGS) -c $< -o $@
 
@@ -53,9 +53,6 @@ $(BUILD_DIR)/utils.o: $(SRC_DIR)/utils.cpp $(SRC_DIR)/utils.hpp
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(CPPFLAGS) -c $< -o $@	
 
-
-$(BUILD_DIR)/test-com.exe: $(BUILD_DIR)/ceSerial.o
-	$(CXX) $(SRC_DIR)/test-com.cpp $(BUILD_DIR)/ceSerial.o -o $(BUILD_DIR)/test-com.exe
 
 
 PHONY: clean
