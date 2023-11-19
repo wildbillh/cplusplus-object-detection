@@ -45,18 +45,28 @@ bool utils::allTrue (bool source[], int size) {
 
 Json::Value utils::readJsonFromFile (std::string filename) {
 
-    Json::Value root;
+    /**
+     * Read JSON from a file and returned the parsed info
+     * @param filename 
+     * @returns 0 if file is not found, -1 if parse error, else root of json
+    */
+
+    Json::Value root = 0;
     std::ifstream f;
     f.open(filename);
+    
+    // If this file is not open return 0
     if (!f.is_open()) {
-        std::cerr << "Error opening: " << filename << std::endl;
+        spdlog::warn("Error opening: " + filename);
         return root;
     }
     Json::CharReaderBuilder builder;
     JSONCPP_STRING errs;
 
+    // Return -1 if parsing error
     if (!parseFromStream(builder, f, &root, &errs)) {
-        std::cout << errs << std::endl;
+        spdlog::error(errs);
+        root = -1;
     }
 
     f.close();

@@ -151,12 +151,12 @@ void USBServoController::syncProperty (unsigned char channel) {
 	*/
 
 	// Get the stored properties for the channel
-	ServoProperties prop = properties[channel];
+	ServoProperties *prop = &(properties[channel]);
 
 	// If the servo is disabled, we sync the acceleration and speed vals on the controller
-	if (prop.disabled) {
-		setAcceleration(channel, prop.acceleration);
-		setSpeed (channel, prop.speed);
+	if (prop->disabled) {
+		setAcceleration(channel, prop->acceleration);
+		setSpeed (channel, prop->speed);
 		setDisabled (channel);
 	}
 	else {
@@ -318,12 +318,14 @@ int USBServoController::setPositionSync (unsigned char channel, int position, fl
 	 * @returns - the value given on success or -1 on failure
 	*/
 
+	spdlog::info("setPositionSync");
+
 	utils::Timer timer = utils::Timer();
 	int pos = setPosition(channel, position);
 	while (getPositionFromController(channel) != pos) {
 		utils::sleepMilliseconds(1);
 		if (timer.seconds() > timeout) {
-			cerr << "Warning: timeout occurred befre setPositionSynch() completion" << endl;
+			spdlog::warn("timeout occurred befre setPositionSynch() completion");
 			break;
 		}
 	}
@@ -382,6 +384,8 @@ int USBServoController::setRelativePos (unsigned char channel, float val, Positi
 	 * @param units - microseconds or degrees 
 	 * @returns - the final position calculated on success or -1 on failure
 	*/
+
+	spdlog::debug("setRelativePos - channel: " + to_string((int)channel) + " pos: " + to_string(val));
 
 	int new_pos = calculateRelativePosition (channel, val, units);
 	if (sync) {
@@ -503,11 +507,11 @@ void USBServoController::setEnabled (unsigned char channel) {
 	*/
 	
 	spdlog::debug("enabling channel " + to_string((int)channel));
-	ServoProperties prop = properties[channel];
-	setAcceleration (channel, prop.acceleration);
-	setSpeed (channel, prop.speed);
-	setPositionSync (channel, prop.pos);
-	prop.disabled = false;
+	ServoProperties *prop = &(properties[channel]);
+	setAcceleration (channel, prop->acceleration);
+	setSpeed (channel, prop->speed);
+	setPositionSync (channel, prop->pos);
+	prop->disabled = false;
 }
 
 ServoProperties USBServoController::getChannelProperty (unsigned char channel) {
@@ -542,4 +546,49 @@ int USBServoController::calculateRelativePosition (unsigned char channel, float 
 	}
 
 	return properties[channel].pos + diff_ms; 
+}
+
+// ---------------------------------------------------------------------------------------
+
+std::vector<double> USBServoController::calibrateServo (unsigned char channel) {
+	/**
+	 * Builds a calibration vector for the given channel and set the property
+	 * @param channel 
+	 * @returns vector containing the number of seconds to move from 0 to 45 degrees by ones
+	*/
+
+	
+	// Get a pointer to the properties
+	ServoProperties *props = &(properties[channel]);
+	// Clear the calibration
+	props->cal.clear();
+	
+	string calibration_name = to_string((int)channel) + "-" + to_string(props->speed) + "-" + to_string(props->acceleration);
+	spdlog::debug("Building calibration for: " + calibration_name);
+	
+	// Move to the center (home) position
+	returnToHome (channel, true);
+	
+	utils::Timer timer = utils::Timer();
+
+	int pos;
+	// Calibrate from 0-45 degrees
+	for (int i=0; i<46; i++) {
+		timer.start();
+		pos = i;
+		// set every other pos to a negative value
+		if (pos % 2) {
+			pos = -pos;
+		}
+		
+		// Move the servo and capture the time needed to complete the move
+		setRelativePos (channel, pos, PositionUnits::DEGREES, true);
+		props->cal.push_back(timer.seconds());
+		spdlog::debug(timer.seconds());
+	}
+
+	// Move to center position before exiting
+	returnToHome(channel, true);
+	
+	return props->cal;
 }

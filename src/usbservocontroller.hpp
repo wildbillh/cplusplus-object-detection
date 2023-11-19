@@ -33,8 +33,10 @@ class ServoProperties {
         bool active;
         int range_degrees;
 	    float microseconds_per_degree; 
+        std::vector<double> cal;
         ServoProperties (unsigned char = 99, int = 120);
         string print ();
+    
 };
 
 
@@ -73,6 +75,7 @@ class USBServoController {
         int calculateRelativePosition (unsigned char, float, PositionUnits);
         static const int MAX_SERVOS = 6;
         std::vector<ServoProperties> properties;
+        std::vector<double> calibrateServo (unsigned char);
     protected:
         std::vector <unsigned char>  active_servos;
         int number_of_active_servos;

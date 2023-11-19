@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include <json/json.h>
+#include <spdlog/spdlog.h>
 
 namespace utils {
 
