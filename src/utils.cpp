@@ -72,7 +72,24 @@ Json::Value utils::readJsonFromFile (std::string filename) {
     f.close();
     return root;
 
+}
 
+void utils::writeJsonToFile (std::string filename, Json::Value root) {
+
+    Json::StreamWriterBuilder builder;
+    const std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+    
+    std::ofstream f;
+    f.open(filename, std::ofstream::out | std::ofstream::trunc);
+    if (!f.is_open()) {
+        spdlog::error("Error opening: " + filename);
+        return;
+    }
+    
+    
+    writer->write(root, &f);
+    f.close();
+    return;
 }
 
 // --------------------------------------------------------------------------------------

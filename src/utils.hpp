@@ -14,6 +14,7 @@ void sleepSeconds (double);
 void sleepMilliseconds (long);
 bool allTrue (bool[], int);
 Json::Value readJsonFromFile (std::string filename);
+void writeJsonToFile (std::string, Json::Value);
 
 /**
  * Class for getting elapsed time between to set points.

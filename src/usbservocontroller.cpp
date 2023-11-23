@@ -49,11 +49,13 @@ string ServoProperties::print () {
 
 // ----------------------------------------------------------------------------------
 
-USBServoController::USBServoController () {
+USBServoController::USBServoController (std::string calibrationFile) {
 	/**
 	 * Sets up the default properties for the number of possible servos
 	*/
 	
+	calibration_file = calibrationFile;
+
 	for (int i=0; i<USBServoController::MAX_SERVOS; i++) {
 		properties.push_back(ServoProperties());
 	}
@@ -318,12 +320,12 @@ int USBServoController::setPositionSync (unsigned char channel, int position, fl
 	 * @returns - the value given on success or -1 on failure
 	*/
 
-	spdlog::info("setPositionSync");
-
+	
 	utils::Timer timer = utils::Timer();
 	int pos = setPosition(channel, position);
-	while (getPositionFromController(channel) != pos) {
-		utils::sleepMilliseconds(1);
+	int interim_pos;
+	while (interim_pos = getPositionFromController(channel) != pos) {
+		utils::sleepMilliseconds(5);
 		if (timer.seconds() > timeout) {
 			spdlog::warn("timeout occurred befre setPositionSynch() completion");
 			break;
@@ -550,10 +552,11 @@ int USBServoController::calculateRelativePosition (unsigned char channel, float 
 
 // ---------------------------------------------------------------------------------------
 
-std::vector<double> USBServoController::calibrateServo (unsigned char channel) {
+bool USBServoController::calibrateServo (unsigned char channel, bool force) {
 	/**
-	 * Builds a calibration vector for the given channel and set the property
+	 * Finds a stored or builds a new calibration vector for the given channel, acc, speed
 	 * @param channel 
+	 * @param force - recalibrate even if found in file
 	 * @returns vector containing the number of seconds to move from 0 to 45 degrees by ones
 	*/
 
@@ -561,10 +564,22 @@ std::vector<double> USBServoController::calibrateServo (unsigned char channel) {
 	// Get a pointer to the properties
 	ServoProperties *props = &(properties[channel]);
 	// Clear the calibration
-	props->cal.clear();
-	
-	string calibration_name = to_string((int)channel) + "-" + to_string(props->speed) + "-" + to_string(props->acceleration);
-	spdlog::debug("Building calibration for: " + calibration_name);
+	props->calibration.clear();
+
+
+	// If there is a calibration file, attempt to get the calibration from the file
+	if (!calibration_file.empty() && !force) {
+		spdlog::info ("Attempt to get calibration from file");
+		ServoCalibration sc = ServoCalibration (calibration_file);
+		vector<double> cal_vals = sc.get(channel, props->acceleration, props->speed);
+		if (!cal_vals.empty()) {
+			props->calibration = cal_vals;
+			return true;
+		}
+	}
+
+	// To get here means we need to do a calibration
+	spdlog::info("Building calibration for channel: " + std::to_string((int)channel));
 	
 	// Move to the center (home) position
 	returnToHome (channel, true);
@@ -583,12 +598,19 @@ std::vector<double> USBServoController::calibrateServo (unsigned char channel) {
 		
 		// Move the servo and capture the time needed to complete the move
 		setRelativePos (channel, pos, PositionUnits::DEGREES, true);
-		props->cal.push_back(timer.seconds());
+		props->calibration.push_back(timer.seconds());
 		spdlog::debug(timer.seconds());
 	}
 
 	// Move to center position before exiting
 	returnToHome(channel, true);
-	
-	return props->cal;
+
+	// if filename, We need to write the new calibration to the stored json and then the file 
+	if (!calibration_file.empty()) {
+
+		ServoCalibration sc = ServoCalibration (calibration_file);
+		sc.set(channel, props->acceleration, props->speed, props->calibration);
+
+	}
+	return true;
 }

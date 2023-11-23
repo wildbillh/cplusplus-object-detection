@@ -50,6 +50,12 @@ $(BUILD_DIR)/usbservocontroller.o: $(SRC_DIR)/usbservocontroller.cpp $(SRC_DIR)/
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(CPPFLAGS) -c $< -o $@
 
+$(BUILD_DIR)/servocalibration.o: $(SRC_DIR)/servocalibration.cpp $(SRC_DIR)/servocalibration.hpp
+	mkdir -p $(BUILD_DIR)
+	$(CXX) $(CPPFLAGS) -c $< -o $@
+
+
+
 $(BUILD_DIR)/main.o: $(SRC_DIR)/main.cpp
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(CPPFLAGS) -c $< -o $@
