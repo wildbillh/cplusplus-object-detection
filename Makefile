@@ -54,7 +54,9 @@ $(BUILD_DIR)/servocalibration.o: $(SRC_DIR)/servocalibration.cpp $(SRC_DIR)/serv
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(CPPFLAGS) -c $< -o $@
 
-
+$(BUILD_DIR)/pantilt.o: $(SRC_DIR)/pantilt.cpp $(SRC_DIR)/pantilt.hpp
+	mkdir -p $(BUILD_DIR)
+	$(CXX) $(CPPFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/main.o: $(SRC_DIR)/main.cpp
 	mkdir -p $(BUILD_DIR)

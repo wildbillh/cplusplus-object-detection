@@ -3,7 +3,7 @@
 
 
 
-ServoProperties::ServoProperties (unsigned char servo, int rangeDegrees) {
+ServoProperties::ServoProperties (Channel servo, int rangeDegrees) {
 
 	/**
 	 * Initialize a default servo property class
@@ -106,7 +106,7 @@ void USBServoController::open (string port) {
 
 // -----------------------------------------------------------------------------------------
 
-void USBServoController::sync (std::vector <unsigned char> activeServos) {
+void USBServoController::sync (ChannelVec activeServos) {
 	
 	// Store the active servos in the member var
 	active_servos = activeServos;
@@ -121,7 +121,7 @@ void USBServoController::sync (std::vector <unsigned char> activeServos) {
 
 // -----------------------------------------------------------------------------------------
 
-void USBServoController::sync (std::vector<unsigned char> activeServos, std::vector<ServoProperties> activeProperties) {
+void USBServoController::sync (ChannelVec activeServos, std::vector<ServoProperties> activeProperties) {
 	
 	/**
 	 * Send any commands necessary to sync the controller to the current local settings
@@ -146,7 +146,7 @@ void USBServoController::sync (std::vector<unsigned char> activeServos, std::vec
 
 // ---------------------------------------------------------------------------------------
 
-void USBServoController::syncProperty (unsigned char channel) {
+void USBServoController::syncProperty (Channel channel) {
 
 	/**
 	 * Sync a particular channels settings with the controller
@@ -170,7 +170,7 @@ void USBServoController::syncProperty (unsigned char channel) {
 
 // --------------------------------------------------------------------------------------------
 
-bool USBServoController::writeCommand (unsigned char code, unsigned char channel, string description) {
+bool USBServoController::writeCommand (unsigned char code, Channel channel, string description) {
 
 	/**
 	 * Write a command to a particular channel.
@@ -196,7 +196,7 @@ bool USBServoController::writeCommand (unsigned char code, unsigned char channel
 
 // -----------------------------------------------------------------------------------------------
 
-bool USBServoController::writeCommand (unsigned char code, unsigned char channel, int target, string description) {
+bool USBServoController::writeCommand (unsigned char code, Channel channel, int target, string description) {
 
 	/**
 	 * Write a command to a particular channel.
@@ -223,7 +223,7 @@ bool USBServoController::writeCommand (unsigned char code, unsigned char channel
 
 // ----------------------------------------------------------------------------------------------
 
-int USBServoController::setAcceleration (unsigned char channel, int val) {
+int USBServoController::setAcceleration (Channel channel, int val) {
 
 	/**
 	 * Sets the acceleration value in the settings and controller
@@ -245,7 +245,7 @@ int USBServoController::setAcceleration (unsigned char channel, int val) {
 
 // ------------------------------------------------------------------------
 
-int USBServoController::setPosition (unsigned char channel, int position) {
+int USBServoController::setPosition (Channel channel, int position) {
 
 	/**
 	 * Sets the position value in the settings and controller in a non blocking way
@@ -281,9 +281,9 @@ int USBServoController::setPosition (unsigned char channel, int position) {
 
 // ----------------------------------------------------------------------------------------------------
 
-std::vector<int> USBServoController::setPositionMulti ( 
-	std::vector<unsigned char> channels, 
-	std::vector<int> positions) {
+IntVec USBServoController::setPositionMulti ( 
+	ChannelVec channels, 
+	IntVec positions) {
 
 	/**
 	 * Sets the position value in the settings and controller for multiple channels. Non blocking
@@ -292,7 +292,7 @@ std::vector<int> USBServoController::setPositionMulti (
 	 * @returns - vector of positions 
 	*/
 
-	std::vector<int> returned_pos_list;
+	IntVec returned_pos_list;
 
 	if (channels.size() != positions.size()) {
 		cerr << "Mismatched data sent to setPositionMulti" << endl;
@@ -310,7 +310,7 @@ std::vector<int> USBServoController::setPositionMulti (
 
 // --------------------------------------------------------------------------------------------
 
-int USBServoController::setPositionSync (unsigned char channel, int position, float timeout) {
+int USBServoController::setPositionSync (Channel channel, int position, float timeout) {
 
 	/**
 	 * Sets the position value in the settings and controller, but blocks until the position is achieved
@@ -337,9 +337,9 @@ int USBServoController::setPositionSync (unsigned char channel, int position, fl
 
 // -------------------------------------------------------------------------------------------
 
-std::vector<int> USBServoController::setPositionMultiSync (
-	std::vector<unsigned char> channels,
-	std::vector<int> positions,
+IntVec USBServoController::setPositionMultiSync (
+	ChannelVec channels,
+	IntVec positions,
 	float timeout) {
 
 	/**
@@ -376,8 +376,9 @@ std::vector<int> USBServoController::setPositionMultiSync (
 	return positions;
 }
 
+// -------------------------------------------------------------------------------------------
 
-int USBServoController::setRelativePos (unsigned char channel, float val, PositionUnits units, bool sync) {
+int USBServoController::setRelativePos (Channel channel, float val, PositionUnits units, bool sync) {
 
 	/**
 	 * Sets the position value in the settings and controller as a delta to the current position
@@ -396,10 +397,38 @@ int USBServoController::setRelativePos (unsigned char channel, float val, Positi
 	return setPosition (channel, new_pos);
 }
 
+// --------------------------------------------------------------------------------------
+
+IntVec USBServoController::setRelativePosMulti (ChannelVec channels, FloatVec positions, 
+	PositionUnits units, bool sync, float timeout) {
+
+	/**
+	 * Set the relative position of multiple servos
+	 * @param channels
+	 * @param positions
+	 * @param units
+	 * @param sync - if true, block
+	 * @param timeout - wait time
+	*/
+
+	// Get a vector of the new absolute positions
+	IntVec abs_positions;
+	for (int i=0; i<channels.size(); i++) {
+		abs_positions.push_back(calculateRelativePosition(channels[i], positions[i], units));
+	}
+
+	if (sync) {
+		return setPositionMultiSync(channels, abs_positions, timeout);
+	}
+
+	return setPositionMulti(channels, abs_positions);
+
+}
+
 
 // -------------------------------------------------------------------------------------------
 
-int USBServoController::setSpeed (unsigned char channel, int val) {
+int USBServoController::setSpeed (Channel channel, int val) {
 
 	/**
 	 * Sets the speed value in the settings and controller
@@ -423,7 +452,7 @@ int USBServoController::setSpeed (unsigned char channel, int val) {
 // ----------------------------------------------------------------------------------------------
 
 
-int USBServoController::returnToHome (unsigned char channel, bool sync, float timeout) {
+int USBServoController::returnToHome (Channel channel, bool sync, float timeout) {
 	/**
  	* Set the channel to the defined home position.
 	* @param channel - channel to set
@@ -442,7 +471,7 @@ int USBServoController::returnToHome (unsigned char channel, bool sync, float ti
 
 // -------------------------------------------------------------------------------------------
 
-std::vector<int> USBServoController::returnToHomeMulti (std::vector<unsigned char> channels, bool sync, float timeout) {
+std::vector<int> USBServoController::returnToHomeMulti (ChannelVec channels, bool sync, float timeout) {
 	/**
  	* Set the channel to the defined home position.
 	* @param channels - vector of channels to set
@@ -468,7 +497,7 @@ std::vector<int> USBServoController::returnToHomeMulti (std::vector<unsigned cha
 
 // ------------------------------------------------------------------------
 
-int USBServoController::getPositionFromController (unsigned char channel) {
+int USBServoController::getPositionFromController (Channel channel) {
 
 	/**
 	 * Gets the position value from the controller
@@ -488,7 +517,7 @@ int USBServoController::getPositionFromController (unsigned char channel) {
 
 // ---------------------------------------------------------------------------
 
-void USBServoController::setDisabled (unsigned char channel) {
+void USBServoController::setDisabled (Channel channel) {
 
 	/**
 	 * Disables a channel (set position to 0)
@@ -501,22 +530,23 @@ void USBServoController::setDisabled (unsigned char channel) {
 
 // ---------------------------------------------------------------------------
 
-void USBServoController::setEnabled (unsigned char channel) {
+void USBServoController::setEnabled (Channel channel) {
 
 	/**
 	 * Enables a channel. Sets the controller to the settings values. Blocks until complete
 	 * @param channel - channel to disable
 	*/
 	
-	spdlog::debug("enabling channel " + to_string((int)channel));
+	spdlog::info("enabling channel " + to_string((int)channel));
 	ServoProperties *prop = &(properties[channel]);
 	setAcceleration (channel, prop->acceleration);
 	setSpeed (channel, prop->speed);
 	setPositionSync (channel, prop->pos);
+	//utils::sleepMilliseconds(1);
 	prop->disabled = false;
 }
 
-ServoProperties USBServoController::getChannelProperty (unsigned char channel) {
+ServoProperties USBServoController::getChannelProperty (Channel channel) {
 
 	/** 
 	 * Gets the servo properties class for a channel
@@ -529,7 +559,7 @@ ServoProperties USBServoController::getChannelProperty (unsigned char channel) {
 
 // ------------------------------------------------------------------------------------
 
-int USBServoController::calculateRelativePosition (unsigned char channel, float val, PositionUnits units) {
+int USBServoController::calculateRelativePosition (Channel channel, float val, PositionUnits units) {
 
 	/**
 	 * Calculates a new position based on the current value and the given delta
@@ -552,7 +582,7 @@ int USBServoController::calculateRelativePosition (unsigned char channel, float 
 
 // ---------------------------------------------------------------------------------------
 
-bool USBServoController::calibrateServo (unsigned char channel, bool force) {
+bool USBServoController::calibrateServo (Channel channel, bool force) {
 	/**
 	 * Finds a stored or builds a new calibration vector for the given channel, acc, speed
 	 * @param channel 

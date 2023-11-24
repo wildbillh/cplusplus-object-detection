@@ -12,6 +12,7 @@ namespace utils {
 
 void sleepSeconds (double);
 void sleepMilliseconds (long);
+bool allTrue (std::vector<bool> source);
 bool allTrue (bool[], int);
 Json::Value readJsonFromFile (std::string filename);
 void writeJsonToFile (std::string, Json::Value);

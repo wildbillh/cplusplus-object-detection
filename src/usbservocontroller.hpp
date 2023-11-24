@@ -14,6 +14,11 @@
 #include <spdlog/spdlog.h>
 
 using namespace std;
+typedef unsigned char Channel;
+typedef std::vector<unsigned char> ChannelVec;
+typedef std::vector<int> IntVec;
+typedef std::vector<float> FloatVec;
+typedef std::vector<double> DoubleVec;
 
 enum class PositionUnits {MICROSECONDS, DEGREES};
 
@@ -23,7 +28,7 @@ enum class PositionUnits {MICROSECONDS, DEGREES};
 */
 class ServoProperties {
     public:
-        unsigned char channel;
+        Channel channel;
         int min;
         int max;
         int home;
@@ -34,7 +39,7 @@ class ServoProperties {
         bool active;
         int range_degrees;
 	    float microseconds_per_degree; 
-        std::vector<double> calibration;
+        DoubleVec calibration;
         ServoProperties (unsigned char = 99, int = 120);
         string print ();
     
@@ -50,35 +55,36 @@ class USBServoController {
         ~USBServoController ();
         void close ();
         void open (string);
-        void syncProperty (unsigned char);
-        void sync (std::vector<unsigned char>);
-        void sync (std::vector<unsigned char>, std::vector<ServoProperties>);
+        void syncProperty (Channel);
+        void sync (ChannelVec);
+        void sync (ChannelVec, std::vector<ServoProperties>);
 
 
-        bool writeCommand (unsigned char, unsigned char, string);
-        bool writeCommand (unsigned char, unsigned char, int, string);
-        int getPositionFromController (unsigned char);
-        int setAcceleration (unsigned char, int);
-        int setPosition (unsigned char, int);
-        std::vector<int> setPositionMulti (std::vector<unsigned char>, std::vector<int>); 
-
-        int setPositionSync (unsigned char, int, float = 3.0);
-        std::vector<int> setPositionMultiSync (std::vector<unsigned char>, std::vector<int>, float = 3.0);
-        int setRelativePos (unsigned char, float, PositionUnits units = PositionUnits::DEGREES, bool sync = false);
+        bool writeCommand (unsigned char, Channel, string);
+        bool writeCommand (unsigned char, Channel, int, string);
+        int getPositionFromController (Channel);
+        int setAcceleration (Channel, int);
         
-        int setSpeed (unsigned char, int);
-        int returnToHome (unsigned char, bool = false, float = 3.0);
-        std::vector<int> returnToHomeMulti (std::vector<unsigned char>, bool = false, float = 3.0);
-        void setDisabled (unsigned char);
-        void setEnabled (unsigned char);
-        ServoProperties getChannelProperty (unsigned char); 
+        int setPosition (Channel, int);
+        IntVec setPositionMulti (ChannelVec, IntVec); 
+        int setPositionSync (Channel, int, float = 3.0);
+        IntVec setPositionMultiSync (ChannelVec, IntVec, float = 3.0);
+        int setRelativePos (Channel, float, PositionUnits units = PositionUnits::DEGREES, bool sync = false);
+        IntVec setRelativePosMulti (ChannelVec, FloatVec, PositionUnits = PositionUnits::DEGREES, bool = false, float = 3.0);
 
-        int calculateRelativePosition (unsigned char, float, PositionUnits);
+        int setSpeed (Channel, int);
+        int returnToHome (Channel, bool = false, float = 3.0);
+        IntVec returnToHomeMulti (ChannelVec, bool = false, float = 3.0);
+        void setDisabled (Channel);
+        void setEnabled (Channel);
+        ServoProperties getChannelProperty (Channel); 
+
+        int calculateRelativePosition (Channel, float, PositionUnits);
         static const int MAX_SERVOS = 6;
         std::vector<ServoProperties> properties;
-        bool calibrateServo (unsigned char, bool = false);
+        bool calibrateServo (Channel, bool = false);
     protected:
-        std::vector <unsigned char>  active_servos;
+        ChannelVec  active_servos;
         int number_of_active_servos;
         Serial serial;
         std::string calibration_file;

@@ -26,6 +26,26 @@ void utils::sleepMilliseconds (long milliseconds) {
 
 // --------------------------------------------------------------------------------------
 
+bool utils::allTrue (std::vector<bool> source) {
+
+    /**
+     * Returns true if all of the booleans in an vector are true
+     * @param source - vector to test
+     
+     * @returns - true if all are true
+    */
+
+    for (auto i : source) {
+        if (!i) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+// --------------------------------------------------------------------------------------
+
 bool utils::allTrue (bool source[], int size) {
 
     /**

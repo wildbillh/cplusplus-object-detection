@@ -1,15 +1,20 @@
 #pragma once
 
-
+#include "utils.hpp"
 #include "usbservocontroller.hpp"
 
 enum class WhichServo {PAN, TILT, BOTH};
 
-class TiltPan: USBServoController {
+class PanTilt: public USBServoController {
 
     public:
-        PanTilt (unsigned char _pan, unsigned char _tilt, std::string calibrationFile) : USBServoController(calibrationFile);
+        PanTilt (Channel, Channel, std::string);
+        ChannelVec getChannels (WhichServo);
+        bool calibrate (WhichServo, bool);
+        void sync (ServoProperties, ServoProperties);
+        IntVec setRelativePos(WhichServo, FloatVec, PositionUnits = PositionUnits::DEGREES, bool = false, float = 3.0);
+        IntVec returnToHome (WhichServo, bool = false, float = 3.0);
     protected:
-        unsigned char pan;
-        unsigned char tilt;
+        Channel pan;
+        Channel tilt;
 };
