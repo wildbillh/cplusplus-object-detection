@@ -5,7 +5,8 @@
 
 #include "cameracapturemanager.hpp"
 //#include "usbservocontroller.hpp"
-#include "pantilt.hpp"
+//#include "pantilt.hpp"
+#include "pantilttracker.hpp"
 #include "servocalibration.hpp"
 #include "serial.hpp"
 
@@ -25,7 +26,7 @@ int main() {
         
         // Get and open a controller, passing in a calibration file.
         //USBServoController controller = USBServoController("cal.json");
-        PanTilt controller = PanTilt(0, 2, "cal.json");
+        PanTiltTracker controller = PanTiltTracker(0, 2, "cal.json");
         controller.open("COM4");
           
         //std::vector<unsigned char> active_servos = {0,2};
@@ -45,55 +46,6 @@ int main() {
         if (controller.calibrate(WhichServo::BOTH, false)) {
             spdlog::info("Calibration Successful");
         }
-
-        
-        controller.setRelativePos(WhichServo::BOTH, FloatVec {-30.0, -30.0}, PositionUnits::DEGREES, true);
-        controller.returnToHome(WhichServo::BOTH, true);
-        controller.setRelativePos(WhichServo::BOTH, FloatVec {30.0, 30.0}, PositionUnits::DEGREES, true);
-        controller.returnToHome(WhichServo::BOTH, true);
-        /*
-        std::vector<ServoProperties> active_props = {pan, tilt};
-       
-        controller.sync (active_servos, active_props);
-        
-        ServoProperties pan_props = controller.getChannelProperty(0);
-        controller.calibrateServo(0, true);
-        controller.calibrateServo(2, true);
-        spdlog::info ("Calibration complete");
-        */
-
-        //ServoCalibration sv = ServoCalibration ("cal.json");
-        //std::vector<double> calibration = sv.get(pan_props.channel, pan_props.acceleration, pan_props.speed);
-        //if (calibration.empty()) {
-            //;
-            //calibration = controller.getChannelProperty(0).calibration;
-            
-            //sv.set(pan_props.channel, pan_props.acceleration, pan_props.speed, calibration);
-        //}
-
-        //std::string calibration_string = controller.calibrateServo(0);
-        //std::vector<double> calibration = controller.getChannelProperty(0).calibration;
-        
-        //controller.setRelativePos (0, -20.0, PositionUnits::DEGREES, true);
-        //controller.setRelativePos (0, 40.0, PositionUnits::DEGREES, true);
-        
-        //controller.setPositionMultiSync (std::vector<unsigned char>{0,2},  std::vector<int>{1000, 1000}); 
-        //controller.setPositionMultiSync (std::vector<unsigned char>{0,2},  std::vector<int>{1500, 1500});
-        
-
-
-        /*
-        controller.setPosition(5, 1500);
-        sleep(1);
-        int pos = controller.getPositionFromController(5);
-        cout << "pos = " << pos << endl;
-        sleep(1);
-        controller.setAcceleration(5, 10);
-        controller.setSpeed(5, 10);
-        controller.setPosition(5, 2000);
-        sleep(1);
-        controller.setDisabled(5);
-        
     
         CameraCaptureManager cm = CameraCaptureManager();
         cm.open(0);
@@ -101,8 +53,57 @@ int main() {
         cout << cm.printProperties(props) << endl;
         cv::Mat frame;
 
+        cv::dnn::Net net = cv::dnn::readNetFromDarknet ("dnn_model/yolov4-tiny.cfg", "dnn_model/yolov4-tiny.weights");
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
+        
+        cv::dnn::DetectionModel model = cv::dnn::DetectionModel(net);
+        model.setInputParams(1.0/255, cv::Size(320,320));
+        IntVec class_ids;
+        FloatVec confidences;
+        std::vector<cv::Rect> boxes;
 
+        //cv::Point center = cv::Point(1600 / 2, 896 / 2);
+        cv::Point center = cv::Point(400, 300);
+        FloatOffset correction;
+
+        //controller.correct()
+
+        //if (controller.calculateCorrectionDegrees(center, correction)) {
+        //    const auto [x_correct, y_correct] = correction;
+        //    cout << x_correct << ", " << y_correct << endl;
+       // }
+        //else {
+       //     cout << "No correction" << endl;
+       // }
+
+
+        int skipFrames = 0;
+
+        
         while (cm.read(frame)) {
+
+            model.detect(frame, class_ids, confidences, boxes);
+            
+            // Draw a rect for the best candidate where class_id == 0
+            for (int i=0; i<class_ids.size(); i++) {        
+                if (class_ids[i] == 0) {
+                    auto center = boxes[i].tl() + cv::Point(boxes[i].width / 2, boxes[i].height /2);
+                    cout << center << endl;
+                    if (skipFrames == 0) {
+                        if (controller.correct(center)) {
+                            skipFrames = 30;
+                        }
+                    }
+                    else {
+                        skipFrames--;
+                    }
+
+                    cv::drawMarker(frame, center, cv::Scalar(255,0,0), cv::MARKER_CROSS, 200, 3);
+                    //cv::rectangle(frame, boxes[i], cv::Scalar(255,0,0), 2, cv::LINE_8);
+                    break;
+                }         
+            }
             
             cv::imshow("Video Player", frame);//Showing the video//
             char c = (char)cv::waitKey(25);//Allowing 25 milliseconds frame processing time and initiating break condition//
@@ -110,8 +111,8 @@ int main() {
                 break;
             }
         }
-        */
-            
+        
+        controller.returnToHome(WhichServo::BOTH, true);
         return 0;
     }
     catch (const std::exception & e) {

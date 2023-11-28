@@ -74,6 +74,44 @@ void PanTilt::sync (ServoProperties panProps, ServoProperties tiltProps) {
 
 }
 
+// ------------------------------------------------------------------------------
+
+IntVec PanTilt::setAcceleration (WhichServo whichServo, IntVec vals) {
+    /**
+     * Sets the acceleration of the given servos
+     * @param whichServo - servos to set
+     * @param - vector of values
+     * @returns -vector of values
+    */
+
+    ChannelVec channels = getChannels(whichServo);
+    IntVec return_vals;
+    for (int i=0; i<channels.size(); i++) {
+        return_vals.push_back(USBServoController::setAcceleration(channels[i], vals[i]));
+    }
+
+    return return_vals;
+}
+
+// -------------------------------------------------------------------------------
+
+IntVec PanTilt::setSpeed (WhichServo whichServo, IntVec vals) {
+    /**
+     * Sets the speed of the given servos
+     * @param whichServo - servos to set
+     * @param - vector of values
+     * @returns -vector of values
+    */
+
+    ChannelVec channels = getChannels(whichServo);
+    IntVec return_vals;
+    for (int i=0; i<channels.size(); i++) {
+        return_vals.push_back(USBServoController::setSpeed(channels[i], vals[i]));
+    }
+
+    return return_vals;
+}
+
 // -------------------------------------------------------------------------------
 
 IntVec PanTilt::setRelativePos( WhichServo whichServo, 

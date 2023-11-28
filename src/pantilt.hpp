@@ -12,6 +12,8 @@ class PanTilt: public USBServoController {
         ChannelVec getChannels (WhichServo);
         bool calibrate (WhichServo, bool);
         void sync (ServoProperties, ServoProperties);
+        IntVec setAcceleration (WhichServo, IntVec);
+        IntVec setSpeed (WhichServo, IntVec);
         IntVec setRelativePos(WhichServo, FloatVec, PositionUnits = PositionUnits::DEGREES, bool = false, float = 3.0);
         IntVec returnToHome (WhichServo, bool = false, float = 3.0);
     protected:

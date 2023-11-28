@@ -15,7 +15,7 @@ SPDLOG_INCLUDE_PATH = "$(LOCAL)/spdlog/include"
 SPDLOG_LIB_PATH = "$(LOCAL)/spdlog/lib"
 JSONCPP_INCLUDE_PATH = "$(LOCAL)/jsoncpp/include"
 JSONCPP_LIB_PATH = "$(LOCAL)/jsoncpp/lib"
-LIBS = -lopencv_core481 -lopencv_highgui481 -lopencv_imgproc481 -lopencv_imgcodecs481 -lopencv_videoio481 -lspdlog -ljsoncpp
+LIBS = -lopencv_core481 -lopencv_highgui481 -lopencv_imgproc481 -lopencv_imgcodecs481 -lopencv_videoio481 -lopencv_dnn481 -lspdlog -ljsoncpp
 CPPFLAGS = -I $(OPENCV_INCLUDE_PATH) -I $(SPDLOG_INCLUDE_PATH) -I $(JSONCPP_INCLUDE_PATH)
 LDFLAGS = -L $(OPENCV_LIB_PATH) -L $(SPDLOG_LIB_PATH) -L $(JSONCPP_LIB_PATH) $(LIBS) 
 
@@ -54,7 +54,12 @@ $(BUILD_DIR)/servocalibration.o: $(SRC_DIR)/servocalibration.cpp $(SRC_DIR)/serv
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(CPPFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/pantilt.o: $(SRC_DIR)/pantilt.cpp $(SRC_DIR)/pantilt.hpp
+$(BUILD_DIR)/pantilt.o: $(SRC_DIR)/pantilt.cpp $(SRC_DIR)/pantilt.hpp $(BUILD_DIR)/usbservocontroller.o
+	mkdir -p $(BUILD_DIR)
+	$(CXX) $(CPPFLAGS) -c $< -o $@
+
+
+$(BUILD_DIR)/pantilttracker.o: $(SRC_DIR)/pantilttracker.cpp $(SRC_DIR)/pantilttracker.hpp $(BUILD_DIR)/pantilt.o
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(CPPFLAGS) -c $< -o $@
 
