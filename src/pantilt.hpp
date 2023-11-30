@@ -16,6 +16,7 @@ class PanTilt: public USBServoController {
         IntVec setSpeed (WhichServo, IntVec);
         IntVec setRelativePos(WhichServo, FloatVec, PositionUnits = PositionUnits::DEGREES, bool = false, float = 3.0);
         IntVec returnToHome (WhichServo, bool = false, float = 3.0);
+        std::tuple<float, int> calculateMovementTime (int, int, int = 30);
     protected:
         Channel pan;
         Channel tilt;

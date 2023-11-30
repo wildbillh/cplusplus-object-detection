@@ -9,7 +9,7 @@ typedef std::tuple<int,int> IntOffset;
 
 class TrackerProperties {
     public:
-        TrackerProperties (float=0.03, float=0.02, FloatOffset=FloatOffset(0.0, 0.2), cv::Point=cv::Point(1600,896));
+        TrackerProperties (float=0.02, float=0.02, FloatOffset=FloatOffset(0.0, 0.0), cv::Point=cv::Point(1600,896));
         float horizontal_slack;
         float vertical_slack;
         FloatOffset center_offset;
@@ -26,6 +26,6 @@ class PanTiltTracker : public PanTilt {
         IntOffset horizontal_slack;
         IntOffset vertical_slack;
         cv::Point frame_center;
-        bool calculateCorrectionDegrees (cv::Point, FloatOffset &);
-        bool correct (cv::Point, int = 30);
+        bool calculateCorrectionDegrees (cv::Point, IntOffset &);
+        std::tuple<float, int> correct (cv::Point, int = 30);
 };

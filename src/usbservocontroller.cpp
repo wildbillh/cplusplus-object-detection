@@ -644,3 +644,19 @@ bool USBServoController::calibrateServo (Channel channel, bool force) {
 	}
 	return true;
 }
+
+// --------------------------------------------------------------------------------------------------
+
+	float USBServoController::calculateMovementTime (Channel channel, int degrees) {
+
+        /**
+		 * Retreive the stored time and number of frames needed to move each servo the specified degrees
+		 * 
+		*/
+       
+        int deg = abs(degrees) ? abs(degrees) < 45 : 45;
+        float seconds = properties[channel].calibration[deg];
+        //int frames_to_skip = ceil(fps * seconds);
+
+        return seconds;
+	} 

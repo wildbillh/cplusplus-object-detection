@@ -26,19 +26,21 @@ int main() {
         
         // Get and open a controller, passing in a calibration file.
         //USBServoController controller = USBServoController("cal.json");
-        PanTiltTracker controller = PanTiltTracker(0, 2, "cal.json");
+
+        TrackerProperties tracker_props = TrackerProperties (0.02, 0.02, FloatOffset(0.0, 0.0), cv::Point(1600,896));
+        PanTiltTracker controller = PanTiltTracker(0, 2, "cal.json", tracker_props);
         controller.open("COM4");
           
         //std::vector<unsigned char> active_servos = {0,2};
         
         ServoProperties pan = ServoProperties(0);
-        pan.acceleration = 15;
-        pan.speed = 15;
+        pan.acceleration = 10;
+        pan.speed = 10;
         pan.disabled = false;
         
         ServoProperties tilt = ServoProperties(2);
-        tilt.acceleration = 15;
-        tilt.speed = 15;
+        tilt.acceleration = 10;
+        tilt.speed = 10;
         tilt.disabled = false;
 
         controller.sync(pan, tilt);
@@ -65,7 +67,7 @@ int main() {
 
         //cv::Point center = cv::Point(1600 / 2, 896 / 2);
         cv::Point center = cv::Point(400, 300);
-        FloatOffset correction;
+        IntOffset correction;
 
         //controller.correct()
 
@@ -86,25 +88,27 @@ int main() {
             model.detect(frame, class_ids, confidences, boxes);
             
             // Draw a rect for the best candidate where class_id == 0
-            for (int i=0; i<class_ids.size(); i++) {        
-                if (class_ids[i] == 0) {
+            for (int i=0; i<class_ids.size(); i++) {   
+                cout << class_ids[i] << endl;     
+                if (class_ids[i] == 66) {
                     auto center = boxes[i].tl() + cv::Point(boxes[i].width / 2, boxes[i].height /2);
                     cout << center << endl;
                     if (skipFrames == 0) {
-                        if (controller.correct(center)) {
-                            skipFrames = 30;
-                        }
+                        auto [seconds, frames_to_skip] = controller.correct(center);
+                        skipFrames = frames_to_skip * 2; 
+                        cout << "setting skipframes to " << skipFrames << endl;         
                     }
                     else {
                         skipFrames--;
                     }
 
                     cv::drawMarker(frame, center, cv::Scalar(255,0,0), cv::MARKER_CROSS, 200, 3);
-                    //cv::rectangle(frame, boxes[i], cv::Scalar(255,0,0), 2, cv::LINE_8);
+                    cv::rectangle(frame, boxes[i], cv::Scalar(255,0,0), 2, cv::LINE_8);
                     break;
                 }         
             }
             
+            cv::drawMarker(frame, cv::Point(800, 448), cv::Scalar(255,255,0), cv::MARKER_CROSS, 200, 4);
             cv::imshow("Video Player", frame);//Showing the video//
             char c = (char)cv::waitKey(25);//Allowing 25 milliseconds frame processing time and initiating break condition//
             if (c == 27){ //If 'Esc' is entered break the loop//

@@ -143,5 +143,25 @@ IntVec PanTilt::returnToHome (WhichServo whichServo, bool sync, float timeout) {
 
 }
 
+// ------------------------------------------------------------------------------------
 
+std::tuple<float, int> PanTilt::calculateMovementTime (int panDegrees, int tiltDegrees, int fps) {
+
+/**
+ * 
+ * */     
+
+    cout << "calculateMovementTime" << endl;
+    float return_time = 0.0;
+
+    if (panDegrees != 0) {
+        return_time = USBServoController::calculateMovementTime(pan, panDegrees);
+    }
+    if (tiltDegrees != 0) {
+        return_time += USBServoController::calculateMovementTime(tilt, tiltDegrees);
+    }   
+
+    return std::make_tuple(return_time, ceil(return_time * fps));
+
+}
 

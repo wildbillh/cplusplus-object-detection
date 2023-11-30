@@ -78,11 +78,11 @@ class USBServoController {
         void setDisabled (Channel);
         void setEnabled (Channel);
         ServoProperties getChannelProperty (Channel); 
-
         int calculateRelativePosition (Channel, float, PositionUnits);
         static const int MAX_SERVOS = 6;
-        std::vector<ServoProperties> properties;
         bool calibrateServo (Channel, bool = false);
+        float calculateMovementTime (Channel, int);
+        std::vector<ServoProperties> properties;
     protected:
         ChannelVec  active_servos;
         int number_of_active_servos;
