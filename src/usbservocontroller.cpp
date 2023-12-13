@@ -11,11 +11,13 @@ ServoProperties::ServoProperties (Channel servo, int rangeDegrees) {
 	 * @ param rangeDegrees - The range of degrees that the min and max microseconds represent. Default to 120
 	*/
 
+	
 	channel = servo;
  	min = 992;
     max = 2000;
     home = 1500;
 	pos = 1500;
+	target_pos = pos;
 	speed = 200;
     acceleration = 0;
 	disabled = true;
@@ -31,8 +33,8 @@ string ServoProperties::print () {
 	/**
 	 * Build a string representing the state of the servo properties
 	*/
-	std::stringstream s;
-	s << "channel: " << (channel == 99 ? "unset" : std::to_string(channel)) << endl;
+	stringstream s;
+	s << "channel: " << (channel == 99 ? "unset" : to_string(channel)) << endl;
 	s << "min: " << min << endl;
 	s << "max: " << max << endl;
 	s << "home: " << home << endl;
@@ -49,7 +51,7 @@ string ServoProperties::print () {
 
 // ----------------------------------------------------------------------------------
 
-USBServoController::USBServoController (std::string calibrationFile) {
+USBServoController::USBServoController (string calibrationFile) {
 	/**
 	 * Sets up the default properties for the number of possible servos
 	*/
@@ -59,7 +61,10 @@ USBServoController::USBServoController (std::string calibrationFile) {
 	for (int i=0; i<USBServoController::MAX_SERVOS; i++) {
 		properties.push_back(ServoProperties());
 	}
-	
+
+#ifdef THREADED
+	position_thread = jthread();
+#endif 	
 }
 
 // -----------------------------------------------------------------------------------
@@ -121,7 +126,7 @@ void USBServoController::sync (ChannelVec activeServos) {
 
 // -----------------------------------------------------------------------------------------
 
-void USBServoController::sync (ChannelVec activeServos, std::vector<ServoProperties> activeProperties) {
+void USBServoController::sync (ChannelVec activeServos, vector<ServoProperties> activeProperties) {
 	
 	/**
 	 * Send any commands necessary to sync the controller to the current local settings
@@ -132,7 +137,7 @@ void USBServoController::sync (ChannelVec activeServos, std::vector<ServoPropert
 	active_servos = activeServos;
 
 	// For each active servo, set the given properties
-	for (int i=0; i<active_servos.size(); i++) {
+	for (size_t i=0; i<active_servos.size(); i++) {
 		
 		unsigned char channel = activeServos[i];
 		// Replace the stored stored property with the new one
@@ -208,10 +213,14 @@ bool USBServoController::writeCommand (unsigned char code, Channel channel, int 
 	 * @returns - true if successful
 	 * @throws - runtime_error if port is not open
 	*/
-    
-    unsigned char command[] = {code, channel, (unsigned char)(target & 0x7F), (unsigned char)(target >> 7 & 0x7F)};
 
-    if (!serial.write(command, sizeof command))
+#ifdef THREADED  
+    const lock_guard <mutex> lock (write_mutex);
+#endif
+
+	unsigned char command[] = {code, channel, (unsigned char)(target & 0x7F), (unsigned char)(target >> 7 & 0x7F)};
+
+	if (!serial.write(command, sizeof command))
     {
         spdlog::error("error writing: " + description);
         return false;
@@ -271,7 +280,7 @@ int USBServoController::setPosition (Channel channel, int position) {
 	int quarter_ms = new_pos * 4;
 	
 	if (writeCommand(0x84, channel, quarter_ms, "setPosition")) {
-		properties[channel].pos = position;
+		properties[channel].target_pos = position;
 		return position;
 	}
 
@@ -298,16 +307,121 @@ IntVec USBServoController::setPositionMulti (
 		cerr << "Mismatched data sent to setPositionMulti" << endl;
 	}
 	else {
-		for (int i=0; i<channels.size(); i++) {
+		for (size_t i=0; i<channels.size(); i++) {
 			returned_pos_list.push_back(setPosition(channels[i], positions[i]));
 		}	
 	}
 
 	return returned_pos_list;
 	
-
 }
 
+// --------------------------------------------------------------------------------------------
+
+#ifdef THREADED
+void USBServoController::setPositionThreaded (vector<pair<Channel, int>> pos_pairs, 
+	 bool &done, float timeout) {
+
+	/**
+	 * Sets the position value in the settings and controller and spawns a thread to monitor the position
+	 * progress. Done is set to true when the target position is acheived.
+	 * @param pos_pairs - Vector containing pairs of channel/position 
+	 * @param done - Reference value set to true when done.
+	 * @param timeout - how long to wait for the position to be acheived in seconds 
+	 * @returns - Vector of positions
+	*/
+
+	// Capture the scope
+	auto that = this;
+	
+	// This bool will be modified by the thread when it completes
+	done = false;
+
+	// Define the lambda
+	function<void ()> f = [pos_pairs, &done, timeout, that] () {
+
+		// When all of the bools in the status vector are true or timeout occurs, return.
+		vector<bool> status;
+		// Get a vector to hold the target servo positions
+		IntVec target_positions;
+
+		size_t size = pos_pairs.size();
+
+		// for each channel set the position and set a value in the status vector to false
+		for (size_t i=0; i<size; i++) {
+			target_positions.push_back(that->setPosition(pos_pairs[i].first, pos_pairs[i].second));
+			status.push_back(false);
+		}
+
+		// Start a timer
+		utils::Timer timer = utils::Timer();
+
+		// Keep looping until all servos are complete
+		while (!utils::allTrue(status)) {
+
+			// Get the position of each servo and set the status vector if it's complete. 
+			for (size_t i=0; i<size; i++) {
+				if (!status[i]) {
+					if (that->getPositionFromController(pos_pairs[i].first) == target_positions[i]) {
+						status[i] = true;
+					}
+				}
+			}
+
+			// if timeout occurs, break
+			if (timer.seconds() > timeout) {
+				spdlog::warn("timeout occurred befre setPositionSynch() completion");
+				break;
+			}
+		}
+		
+		// Set the final status. This value should be checked by the user
+		done = true;
+	};
+	
+	// Execute the thread
+	position_thread = jthread(move(jthread(f)));
+	return;
+}
+
+// --------------------------------------------------------------------------------------------
+
+void USBServoController::setPositionThreaded (Channel channel, int position, bool &done, float timeout) {
+
+	/**
+	 * Sets the position value in the settings and controller, but blocks until the position is achieved
+	 * @param channel - channel to write to 
+	 * @param val - acceleration value 0 - 255
+	 * @param timeout - how long to wait for the position to be acheived in seconds 
+	 * @returns - the value given on success or -1 on failure
+	*/
+
+	auto that = this;
+	done = false;
+
+	// Declare a lambda to set the position and loop until there
+	function<void ()> f = [channel, position, &done, timeout, that] () {
+		utils::Timer timer = utils::Timer();
+		int pos = that->setPosition(channel, position);
+		int interim_pos;
+		while ( (interim_pos = that->getPositionFromController(channel)) != pos) {
+			utils::sleepMilliseconds(1);
+			if (timer.seconds() > timeout) {
+				spdlog::warn("timeout occurred befre setPositionSynch() completion");
+				break;
+			}
+		}
+		done = true;
+	
+		that->properties[channel].pos = pos;	
+	};
+
+	// Execute the lambda in the thread
+	position_thread = jthread(move(jthread(f)));
+	
+	return;
+}
+#endif 
 // --------------------------------------------------------------------------------------------
 
 int USBServoController::setPositionSync (Channel channel, int position, float timeout) {
@@ -324,14 +438,16 @@ int USBServoController::setPositionSync (Channel channel, int position, float ti
 	utils::Timer timer = utils::Timer();
 	int pos = setPosition(channel, position);
 	int interim_pos;
-	while (interim_pos = getPositionFromController(channel) != pos) {
+	while ( (interim_pos = getPositionFromController(channel)) != pos) {
 		utils::sleepMilliseconds(5);
 		if (timer.seconds() > timeout) {
 			spdlog::warn("timeout occurred befre setPositionSynch() completion");
 			break;
 		}
 	}
-	return position;
+	properties[channel].pos = pos;
+	
+	return pos;
 }
 
 
@@ -413,7 +529,7 @@ IntVec USBServoController::setRelativePosMulti (ChannelVec channels, FloatVec po
 
 	// Get a vector of the new absolute positions
 	IntVec abs_positions;
-	for (int i=0; i<channels.size(); i++) {
+	for (size_t i=0; i<channels.size(); i++) {
 		abs_positions.push_back(calculateRelativePosition(channels[i], positions[i], units));
 	}
 
@@ -471,7 +587,7 @@ int USBServoController::returnToHome (Channel channel, bool sync, float timeout)
 
 // -------------------------------------------------------------------------------------------
 
-std::vector<int> USBServoController::returnToHomeMulti (ChannelVec channels, bool sync, float timeout) {
+vector<int> USBServoController::returnToHomeMulti (ChannelVec channels, bool sync, float timeout) {
 	/**
  	* Set the channel to the defined home position.
 	* @param channels - vector of channels to set
@@ -481,8 +597,8 @@ std::vector<int> USBServoController::returnToHomeMulti (ChannelVec channels, boo
 	*/
 
 	// Get a list of home positions
-	std::vector<int> positions;
-	for (int i=0; i<channels.size(); i++) {
+	vector<int> positions;
+	for (size_t i=0; i<channels.size(); i++) {
 		positions.push_back(properties[channels[i]].home);
 	}
 
@@ -504,7 +620,10 @@ int USBServoController::getPositionFromController (Channel channel) {
 	 * @param channel - channel to write to 
 	 * @returns - the position on success or -1 on failure
 	*/
-	
+#ifdef THREADED	
+	const lock_guard <mutex> lock (read_mutex);
+#endif
+
 	if (writeCommand(0x90, channel, "getPosition")) {	
 		unsigned char response[2];
 		if (serial.read(response, 2)) {
@@ -609,7 +728,7 @@ bool USBServoController::calibrateServo (Channel channel, bool force) {
 	}
 
 	// To get here means we need to do a calibration
-	spdlog::info("Building calibration for channel: " + std::to_string((int)channel));
+	spdlog::info("Building calibration for channel: " + to_string((int)channel));
 	
 	// Move to the center (home) position
 	returnToHome (channel, true);
