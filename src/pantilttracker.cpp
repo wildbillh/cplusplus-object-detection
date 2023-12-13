@@ -10,8 +10,8 @@ TrackerProperties::TrackerProperties (float hSlack, float vSlack, FloatOffset ce
 
 // ================================================================================================
 
-PanTiltTracker::PanTiltTracker (Channel pan, Channel tilt, std::string calibrationFile, TrackerProperties trackerProps) 
-    : PanTilt (pan, tilt, calibrationFile) {
+PanTiltTracker::PanTiltTracker (Channel _pan, Channel _tilt, std::string calibrationFile, TrackerProperties trackerProps) 
+    : PanTilt (_pan, _tilt, calibrationFile) {
 
     props = trackerProps;
 
@@ -39,7 +39,6 @@ bool PanTiltTracker::calculateCorrectionDegrees (cv::Point regionCenter, IntOffs
      * @returns bool - Returns true if a correction is needed. 
     */
     
-    cout << "in calculateCorrectionDegrees with region center: " << regionCenter << endl;
     
     int x = regionCenter.x;
     int y = regionCenter.y;
@@ -51,15 +50,12 @@ bool PanTiltTracker::calculateCorrectionDegrees (cv::Point regionCenter, IntOffs
     float h_correction = 0.0, v_correction = 0.0;
     
     if ( (x < hs_min) || (x > hs_max)) {
-       h_correction = std::atan((x - frame_center.x) / (float)props.frame_dims.y) * 180.0 / M_PI; 
+       h_correction = std::atan((x - frame_center.x) / (float)props.frame_dims.y) * 180.0 / _M_PI; 
        ret_value = true; 
     }
 
     if (y < vs_min || y > vs_max) {
-        spdlog::info("correcting y " + std::to_string(y));
-        float val = (frame_center.y - y) / (float)props.frame_dims.y;
-        spdlog::info("atan " + to_string(val));
-        v_correction = std::atan( (frame_center.y - y) / (float)props.frame_dims.x) * 180.0 / M_PI;
+        v_correction = std::atan( (frame_center.y - y) / (float)props.frame_dims.x) * 180.0 / _M_PI;
         ret_value = true;
     }
 
@@ -76,10 +72,10 @@ bool PanTiltTracker::calculateCorrectionDegrees (cv::Point regionCenter, IntOffs
 
 std::tuple<float, int> PanTiltTracker::correct (cv::Point regionCenter, int fps) {
 
-
-    cout << "correct: " << regionCenter << endl;
-
+    // Declare a tuple to hold the pair of correction degrees
     IntOffset correction;
+
+    // Calculate the needed degrees of correction. If false, not needed
     if (calculateCorrectionDegrees(regionCenter, correction)) {
         auto [x_correct, y_correct] = correction;
         cout << "calculateCorrectDegrees returns " << x_correct << ", " << y_correct << endl;

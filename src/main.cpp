@@ -9,6 +9,7 @@
 #include "pantilttracker.hpp"
 #include "servocalibration.hpp"
 #include "serial.hpp"
+#include <thread>
 
 
 
@@ -18,6 +19,7 @@ int main() {
 
 
     try {
+        cout << "threads: " << std::thread::hardware_concurrency() << endl;
         
         // Set up the logger
         spdlog::set_level(spdlog::level::info);
@@ -27,20 +29,20 @@ int main() {
         // Get and open a controller, passing in a calibration file.
         //USBServoController controller = USBServoController("cal.json");
 
-        TrackerProperties tracker_props = TrackerProperties (0.02, 0.02, FloatOffset(0.0, 0.0), cv::Point(1600,896));
+        TrackerProperties tracker_props = TrackerProperties (0.03, 0.04, FloatOffset(0.0, 0.0), cv::Point(1600,896));
         PanTiltTracker controller = PanTiltTracker(0, 2, "cal.json", tracker_props);
         controller.open("COM4");
           
         //std::vector<unsigned char> active_servos = {0,2};
         
         ServoProperties pan = ServoProperties(0);
-        pan.acceleration = 10;
-        pan.speed = 10;
+        pan.acceleration = 5;
+        pan.speed = 15;
         pan.disabled = false;
         
         ServoProperties tilt = ServoProperties(2);
-        tilt.acceleration = 10;
-        tilt.speed = 10;
+        tilt.acceleration = 5;
+        tilt.speed = 15;
         tilt.disabled = false;
 
         controller.sync(pan, tilt);
@@ -66,37 +68,26 @@ int main() {
         std::vector<cv::Rect> boxes;
 
         //cv::Point center = cv::Point(1600 / 2, 896 / 2);
-        cv::Point center = cv::Point(400, 300);
+        //cv::Point center = cv::Point(400, 300);
         IntOffset correction;
 
-        //controller.correct()
-
-        //if (controller.calculateCorrectionDegrees(center, correction)) {
-        //    const auto [x_correct, y_correct] = correction;
-        //    cout << x_correct << ", " << y_correct << endl;
-       // }
-        //else {
-       //     cout << "No correction" << endl;
-       // }
-
-
+       
         int skipFrames = 0;
-
         
         while (cm.read(frame)) {
 
             model.detect(frame, class_ids, confidences, boxes);
             
             // Draw a rect for the best candidate where class_id == 0
-            for (int i=0; i<class_ids.size(); i++) {   
-                cout << class_ids[i] << endl;     
+            for (size_t i=0; i<class_ids.size(); i++) {   
+                //cout << class_ids[i] << endl;     
                 if (class_ids[i] == 66) {
                     auto center = boxes[i].tl() + cv::Point(boxes[i].width / 2, boxes[i].height /2);
-                    cout << center << endl;
-                    if (skipFrames == 0) {
+                    //cout << center << endl;
+                    if (true) {//(skipFrames == 0) {
                         auto [seconds, frames_to_skip] = controller.correct(center);
-                        skipFrames = frames_to_skip * 2; 
-                        cout << "setting skipframes to " << skipFrames << endl;         
+                        skipFrames = frames_to_skip; 
+                        cout << "seconds: " << seconds << ", skipframes: " << skipFrames << endl;         
                     }
                     else {
                         skipFrames--;

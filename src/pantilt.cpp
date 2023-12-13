@@ -86,7 +86,7 @@ IntVec PanTilt::setAcceleration (WhichServo whichServo, IntVec vals) {
 
     ChannelVec channels = getChannels(whichServo);
     IntVec return_vals;
-    for (int i=0; i<channels.size(); i++) {
+    for (size_t i=0; i<channels.size(); i++) {
         return_vals.push_back(USBServoController::setAcceleration(channels[i], vals[i]));
     }
 
@@ -105,7 +105,7 @@ IntVec PanTilt::setSpeed (WhichServo whichServo, IntVec vals) {
 
     ChannelVec channels = getChannels(whichServo);
     IntVec return_vals;
-    for (int i=0; i<channels.size(); i++) {
+    for (size_t i=0; i<channels.size(); i++) {
         return_vals.push_back(USBServoController::setSpeed(channels[i], vals[i]));
     }
 

@@ -96,7 +96,7 @@ void ServoCalibration::set (unsigned char channel, int acceleration, int speed, 
 
     // Build the Json array with our vector values
     Json::Value cal_array = Json::arrayValue;
-    for (int i=0; i<cal_values.size(); i++) {
+    for (size_t i=0; i<cal_values.size(); i++) {
         cal_array.append(cal_values[i]);
     }
 

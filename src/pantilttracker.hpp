@@ -2,7 +2,11 @@
 
 #include "pantilt.hpp"
 #include <opencv2/opencv.hpp>
-#include <math.h>
+#include <cmath>
+
+
+const long double _M_PI = acosl(-1.0L);
+
 
 typedef std::tuple<float,float> FloatOffset;
 typedef std::tuple<int,int> IntOffset;
