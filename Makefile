@@ -3,7 +3,8 @@
 #	opencv
 #	spdlog
 
-CXX = g++ -DSPDLOG_COMPILED_LIB=1
+CXX = g++ -DSPDLOG_COMPILED_LIB=1 -std=c++20 -O3 -Wall -Wextra -Wshadow
+CXX_NO_WARN = g++ -DSPDLOG_COMPILED_LIB=1 -std=c++20 -O3 -Wall -Wextra -Wshadow -Wno-deprecated-enum-enum-conversion
 TARGET_EXEC ?= main.exe
 SRC_DIR ?= ./src
 BUILD_DIR ?= ./build
@@ -40,11 +41,11 @@ $(BUILD_DIR)/test-json.o: $(SRC_DIR)/test-json.cpp
 
 $(BUILD_DIR)/capturemanager.o: $(SRC_DIR)/capturemanager.cpp $(SRC_DIR)/capturemanager.hpp
 	mkdir -p $(BUILD_DIR)
-	$(CXX) $(CPPFLAGS) -c $< -o $@
+	$(CXX_NO_WARN) $(CPPFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/cameracapturemanager.o: $(SRC_DIR)/cameracapturemanager.cpp $(SRC_DIR)/cameracapturemanager.hpp ${BUILD_DIR}/capturemanager.o
 	mkdir -p $(BUILD_DIR)
-	$(CXX) $(CPPFLAGS) -c $< -o $@
+	$(CXX_NO_WARN) $(CPPFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/usbservocontroller.o: $(SRC_DIR)/usbservocontroller.cpp $(SRC_DIR)/usbservocontroller.hpp ${BUILD_DIR}/capturemanager.o
 	mkdir -p $(BUILD_DIR)
@@ -61,11 +62,11 @@ $(BUILD_DIR)/pantilt.o: $(SRC_DIR)/pantilt.cpp $(SRC_DIR)/pantilt.hpp $(BUILD_DI
 
 $(BUILD_DIR)/pantilttracker.o: $(SRC_DIR)/pantilttracker.cpp $(SRC_DIR)/pantilttracker.hpp $(BUILD_DIR)/pantilt.o
 	mkdir -p $(BUILD_DIR)
-	$(CXX) $(CPPFLAGS) -c $< -o $@
+	$(CXX_NO_WARN) $(CPPFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/main.o: $(SRC_DIR)/main.cpp
 	mkdir -p $(BUILD_DIR)
-	$(CXX) $(CPPFLAGS) -c $< -o $@
+	$(CXX_NO_WARN) $(CPPFLAGS) -c $< -o $@
 
 
 $(BUILD_DIR)/serial.o: $(SRC_DIR)/serial.cpp $(SRC_DIR)/serial.hpp
